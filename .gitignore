@@ -1,0 +1,15 @@
+downloads/
+vendor/
+build/
+tools/
+runtime/
+prefix/
+logs/
+dist/
+__pycache__/
+.work/
+release/
+.DS_Store
+.env
+.env.*
+*.log

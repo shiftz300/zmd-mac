@@ -1,0 +1,20 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\FontSubstitutes]
+"MS Shell Dlg"="Heiti SC"
+"MS Shell Dlg 2"="Heiti SC"
+"SimSun"="Heiti SC"
+"NSimSun"="Heiti SC"
+"SimHei"="Heiti SC"
+"Microsoft YaHei"="Heiti SC"
+"Microsoft YaHei UI"="Heiti SC"
+
+[HKEY_CURRENT_USER\Software\Wine\Fonts\Replacements]
+"SimSun"="Heiti SC"
+"NSimSun"="Heiti SC"
+"SimHei"="Heiti SC"
+"Microsoft YaHei"="Heiti SC"
+"Microsoft YaHei UI"="Heiti SC"
+
+[HKEY_CURRENT_USER\Software\Wine\AppDefaults\Endfield.exe]
+"CommandLineAppend"="-force-d3d11"

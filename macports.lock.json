@@ -1,0 +1,201 @@
+{
+  "gnutls": {
+    "url": "https://packages.macports.org/gnutls/gnutls-3.8.13_1.darwin_23.x86_64.tbz2",
+    "filename": "gnutls-3.8.13_1.darwin_23.x86_64.tbz2",
+    "sha256": "8f859c0c50155b57e31c4f18ab7a8561c4f4e0f1328ed5a8899b2a90a0a541a5",
+    "dependencies": [
+      "brotli",
+      "gettext-runtime",
+      "gmp",
+      "libidn2",
+      "libtasn1",
+      "libunistring",
+      "p11-kit",
+      "nettle",
+      "zlib",
+      "zstd"
+    ]
+  },
+  "brotli": {
+    "url": "https://packages.macports.org/brotli/brotli-1.2.0_0.darwin_23.x86_64.tbz2",
+    "filename": "brotli-1.2.0_0.darwin_23.x86_64.tbz2",
+    "sha256": "4994c6f1da110919ed8f100c9be0b90b0ebfc784fda92ad7ad50fe68a87234e0",
+    "dependencies": []
+  },
+  "gettext-runtime": {
+    "url": "https://packages.macports.org/gettext-runtime/gettext-runtime-1.0_0.darwin_23.x86_64.tbz2",
+    "filename": "gettext-runtime-1.0_0.darwin_23.x86_64.tbz2",
+    "sha256": "a4d38106f4e8a4ea5cb1cebbdbf70a0f8e3e367fb9c78f382c001a117980b503",
+    "dependencies": [
+      "libiconv"
+    ]
+  },
+  "libiconv": {
+    "url": "https://packages.macports.org/libiconv/libiconv-1.19_0.darwin_23.x86_64.tbz2",
+    "filename": "libiconv-1.19_0.darwin_23.x86_64.tbz2",
+    "sha256": "adddf9d29ca193b8f9eab44ca934828a7dcd2b35800ca37bbe8276840bbc4fe9",
+    "dependencies": []
+  },
+  "gmp": {
+    "url": "https://packages.macports.org/gmp/gmp-6.3.0_0.darwin_23.x86_64.tbz2",
+    "filename": "gmp-6.3.0_0.darwin_23.x86_64.tbz2",
+    "sha256": "8405a2ac53c809954e4761fd32ce9c1313a98243314da7b3a18d9ab12446d1b4",
+    "dependencies": []
+  },
+  "libidn2": {
+    "url": "https://packages.macports.org/libidn2/libidn2-2.3.8_0.darwin_23.x86_64.tbz2",
+    "filename": "libidn2-2.3.8_0.darwin_23.x86_64.tbz2",
+    "sha256": "d9198e6f41d1518879ccbe69461fdc428455ba0cfa486611e9fea0f69c086c18",
+    "dependencies": [
+      "gettext-runtime",
+      "libiconv",
+      "libunistring"
+    ]
+  },
+  "libunistring": {
+    "url": "https://packages.macports.org/libunistring/libunistring-1.4.2_0.darwin_23.x86_64.tbz2",
+    "filename": "libunistring-1.4.2_0.darwin_23.x86_64.tbz2",
+    "sha256": "38d64e9da2e8b04c3a30f7df0ba1632f0dd06a15b0d2c9602ea4aeced9ca7e96",
+    "dependencies": [
+      "libiconv"
+    ]
+  },
+  "libtasn1": {
+    "url": "https://packages.macports.org/libtasn1/libtasn1-4.21.0_0.darwin_23.x86_64.tbz2",
+    "filename": "libtasn1-4.21.0_0.darwin_23.x86_64.tbz2",
+    "sha256": "71a0c43e3b3c4f52a0f53813af97ac5cb310ea244e1cf75ee4d61d3a49efe68d",
+    "dependencies": []
+  },
+  "p11-kit": {
+    "url": "https://packages.macports.org/p11-kit/p11-kit-0.26.5_1.darwin_23.x86_64.tbz2",
+    "filename": "p11-kit-0.26.5_1.darwin_23.x86_64.tbz2",
+    "sha256": "ab8aeb2e7228241c42091a2cf2d493b79a7bf646eb77f3b4cceac861756520c8",
+    "dependencies": [
+      "gettext-runtime",
+      "libtasn1",
+      "libffi",
+      "libxslt",
+      "curl-ca-bundle"
+    ]
+  },
+  "libffi": {
+    "url": "https://packages.macports.org/libffi/libffi-3.4.8_0.darwin_23.x86_64.tbz2",
+    "filename": "libffi-3.4.8_0.darwin_23.x86_64.tbz2",
+    "sha256": "f50fc304c0352e49b5634f126c76a952d9695519f58fd0e24a71236d2f7e272b",
+    "dependencies": []
+  },
+  "libxslt": {
+    "url": "https://packages.macports.org/libxslt/libxslt-1.1.45_0.darwin_23.x86_64.tbz2",
+    "filename": "libxslt-1.1.45_0.darwin_23.x86_64.tbz2",
+    "sha256": "c53f712b74663d933c8de83b4e3bf5cfa48f4e6a7ddfa3ea9c83de0cbc575f80",
+    "dependencies": [
+      "libxml2"
+    ]
+  },
+  "libxml2": {
+    "url": "https://packages.macports.org/libxml2/libxml2-2.15.4_0.darwin_23.x86_64.tbz2",
+    "filename": "libxml2-2.15.4_0.darwin_23.x86_64.tbz2",
+    "sha256": "74d5cc0a96b30d877058ff54b8511dcd748a815869d8cec2b0066ef2e02a341a",
+    "dependencies": [
+      "libiconv",
+      "icu",
+      "zlib"
+    ]
+  },
+  "icu": {
+    "url": "https://packages.macports.org/icu/icu-78.3_1.darwin_23.x86_64.tbz2",
+    "filename": "icu-78.3_1.darwin_23.x86_64.tbz2",
+    "sha256": "ac750f7e84de3a315560f0ddfe2ac076a9079c3d535a12fa530e3ef265a695e1",
+    "dependencies": []
+  },
+  "zlib": {
+    "url": "https://packages.macports.org/zlib/zlib-1.3.2_0.darwin_23.x86_64.tbz2",
+    "filename": "zlib-1.3.2_0.darwin_23.x86_64.tbz2",
+    "sha256": "f540f2e51f02a2f2f476a3088a310e99fe4031e5e26c9fa2e55119e0bfa46b2e",
+    "dependencies": []
+  },
+  "curl-ca-bundle": {
+    "url": "https://packages.macports.org/curl-ca-bundle/curl-ca-bundle-8.23.0_0.any_any.noarch.tbz2",
+    "filename": "curl-ca-bundle-8.23.0_0.any_any.noarch.tbz2",
+    "sha256": "405c252ca054dd979d0a411b8897155e3fb06e391fa6cb350d3eca0f68aa69c2",
+    "dependencies": []
+  },
+  "nettle": {
+    "url": "https://packages.macports.org/nettle/nettle-3.10.2_0.darwin_23.x86_64.tbz2",
+    "filename": "nettle-3.10.2_0.darwin_23.x86_64.tbz2",
+    "sha256": "6ed447029cd2ebfe56aa0b60a76562955a4ffff5b21ad0494ee3ff4629e7d4e4",
+    "dependencies": [
+      "gmp"
+    ]
+  },
+  "zstd": {
+    "url": "https://packages.macports.org/zstd/zstd-1.5.7_0.darwin_23.x86_64.tbz2",
+    "filename": "zstd-1.5.7_0.darwin_23.x86_64.tbz2",
+    "sha256": "3655d0e549017040466661de4cc759059638a77965cd3af60bcb7832a5b33d86",
+    "dependencies": [
+      "lz4",
+      "xz",
+      "zlib"
+    ]
+  },
+  "lz4": {
+    "url": "https://packages.macports.org/lz4/lz4-1.10.0_0.darwin_23.x86_64.tbz2",
+    "filename": "lz4-1.10.0_0.darwin_23.x86_64.tbz2",
+    "sha256": "7918a6df08b4e4689ab77d8678669ab3c40675b52d1e359ecfb02a03a702b38f",
+    "dependencies": []
+  },
+  "xz": {
+    "url": "https://packages.macports.org/xz/xz-5.8.4_0.darwin_23.x86_64.tbz2",
+    "filename": "xz-5.8.4_0.darwin_23.x86_64.tbz2",
+    "sha256": "4187ce8ec713b4d2c8aa99b4522b7cc16b1114d4ace9d53b3b04a21dc54f58c5",
+    "dependencies": [
+      "libiconv",
+      "gettext-runtime"
+    ]
+  },
+  "freetype": {
+    "url": "https://packages.macports.org/freetype/freetype-2.14.3_0.darwin_23.x86_64.tbz2",
+    "filename": "freetype-2.14.3_0.darwin_23.x86_64.tbz2",
+    "sha256": "6d7fbd042d8a757d900718493104caa0c1a7c356154be4872acd93439d22d834",
+    "dependencies": [
+      "brotli",
+      "bzip2",
+      "libpng",
+      "zlib"
+    ]
+  },
+  "bzip2": {
+    "url": "https://packages.macports.org/bzip2/bzip2-1.0.8_1.darwin_23.x86_64.tbz2",
+    "filename": "bzip2-1.0.8_1.darwin_23.x86_64.tbz2",
+    "sha256": "c6b04ff0ee7c85c86593847392ffe9578caf3b426c1e8d49c9d4dfcc3dfc93d5",
+    "dependencies": []
+  },
+  "libpng": {
+    "url": "https://packages.macports.org/libpng/libpng-1.6.58_0.darwin_23.x86_64.tbz2",
+    "filename": "libpng-1.6.58_0.darwin_23.x86_64.tbz2",
+    "sha256": "f34f5f0c4fc1aee3cf37982f87689db9d7171ef2dd1b32ac31e6806d0734fd03",
+    "dependencies": [
+      "zlib"
+    ]
+  },
+  "libsdl2": {
+    "url": "https://packages.macports.org/libsdl2/libsdl2-2.32.10_2.darwin_23.x86_64.tbz2",
+    "filename": "libsdl2-2.32.10_2.darwin_23.x86_64.tbz2",
+    "sha256": "136b28751499f7fdbc4f4b4a08782d6f65e51b92cfd925060f688ec509a897cf",
+    "dependencies": [
+      "libiconv"
+    ]
+  },
+  "vulkan-loader": {
+    "url": "https://packages.macports.org/vulkan-loader/vulkan-loader-1.4.363.0_0.darwin_23.x86_64.tbz2",
+    "filename": "vulkan-loader-1.4.363.0_0.darwin_23.x86_64.tbz2",
+    "sha256": "efbec311e3c5b2d2153ed62ec8da69088f8c7cb613d7374e051f5b3e0cb530ab",
+    "dependencies": []
+  },
+  "libpcap": {
+    "url": "https://packages.macports.org/libpcap/libpcap-1.11.0_0.darwin_23.x86_64.tbz2",
+    "filename": "libpcap-1.11.0_0.darwin_23.x86_64.tbz2",
+    "sha256": "26dd0f2e38a74181abebfd071939289d77653c2f34e902b2beb4864213cc1799",
+    "dependencies": []
+  }
+}

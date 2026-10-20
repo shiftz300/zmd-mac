@@ -1,0 +1,191 @@
+--- a/dlls/winemac.drv/cocoa_app.m
++++ b/dlls/winemac.drv/cocoa_app.m
+@@ -28,6 +28,9 @@
+ 
+ 
+ static NSString* const WineAppWaitQueryResponseMode = @"WineAppWaitQueryResponseMode";
++
++/* zmd-mac: opt-in routing from both Wine Dock icons to one hidden coordinator. */
++static BOOL zmdNativeQuit;
+ static NSString* const WineWillShowPermissionDialogNotification = @"WineWillShowPermissionDialogNotification";
+ static NSString* const WineDidShowPermissionDialogNotification = @"WineDidShowPermissionDialogNotification";
+ 
+@@ -341,6 +344,14 @@
+             // Application menu
+             submenu = [[[NSMenu alloc] initWithTitle:WineLocalizedString(STRING_MENU_WINE)] autorelease];
+             bundleName = [[NSBundle mainBundle] objectForInfoDictionaryKey:(NSString*)kCFBundleNameKey];
++
++            if (getenv("ZMD_SESSION_ID"))
++            {
++                item = [submenu addItemWithTitle:@"终末地设置…"
++                                          action:@selector(zmdShowSettings:) keyEquivalent:@","];
++                [item setTarget:self];
++                [submenu addItem:[NSMenuItem separatorItem]];
++            }
+ 
+             if ([bundleName length])
+                 title = [NSString stringWithFormat:WineLocalizedString(STRING_MENU_ITEM_HIDE_APPNAME), bundleName];
+@@ -2058,6 +2069,13 @@
+                     name:(NSString*)kTISNotifyEnabledKeyboardInputSourcesChanged
+                   object:nil];
+ 
++        const char *zmdSession = getenv("ZMD_SESSION_ID");
++        if (zmdSession && *zmdSession)
++            [dnc addObserver:self selector:@selector(zmdNativeQuitRequest:)
++                        name:@"local.zmdmac.NativeQuit"
++                      object:[NSString stringWithUTF8String:zmdSession]
++          suspensionBehavior:NSNotificationSuspensionBehaviorDeliverImmediately];
++
+         /* CW Hack 22310 */
+         [dnc addObserver:self
+                 selector:@selector(handleExternalQuitRequest:)
+@@ -2514,6 +2532,24 @@
+         return YES;
+     }
+ 
++    - (void) zmdShowSettings:(id)sender
++    {
++        const char *session = getenv("ZMD_SESSION_ID");
++        if (!session || !*session) return;
++        [[NSDistributedNotificationCenter defaultCenter]
++            postNotificationName:@"local.zmdmac.SessionSettings"
++                          object:[NSString stringWithUTF8String:session]
++                        userInfo:@{@"pid": @(getpid())} deliverImmediately:YES];
++    }
++
++    - (void) zmdNativeQuitRequest:(NSNotification *)notification
++    {
++        if ([notification.userInfo[@"pid"] intValue] != getpid()) return;
++        zmdNativeQuit = YES;
++        [NSApp terminate:nil];
++        zmdNativeQuit = NO;
++    }
++
+     - (NSApplicationTerminateReply) applicationShouldTerminate:(NSApplication *)sender
+     {
+         NSApplicationTerminateReply ret = NSTerminateNow;
+@@ -2521,6 +2557,18 @@
+         NSAppleEventDescriptor* desc = [m currentAppleEvent];
+         macdrv_event* event;
+         WineEventQueue* queue;
++
++        const char *zmdSession = getenv("ZMD_SESSION_ID");
++        if (!zmdNativeQuit && zmdSession && *zmdSession &&
++            ![[desc attributeDescriptorForKeyword:kAEQuitReason] int32Value])
++        {
++            [[NSDistributedNotificationCenter defaultCenter]
++                postNotificationName:@"local.zmdmac.SessionQuit"
++                              object:[NSString stringWithUTF8String:zmdSession]
++                            userInfo:@{@"pid": @(getpid())} deliverImmediately:YES];
++            /* The coordinator owns the asynchronous request; allow retries. */
++            return NSTerminateCancel;
++        }
+ 
+         event = macdrv_create_event(APP_QUIT_REQUESTED, nil);
+         event->deliver = 1;
+--- a/dlls/winemac.drv/dllmain.c
++++ b/dlls/winemac.drv/dllmain.c
+@@ -187,6 +187,34 @@
+ }
+ 
+ 
++/* The launcher is a Qt application. A Windows session-end message tears
++ * down its windows without following its tray Exit action. Queue that action
++ * on Qt's owning thread instead. Use only the already loaded Qt 5 x64 ABI;
++ * no Qt code or launcher DLL is bundled with this integration. */
++#ifdef _WIN64
++struct zmd_qt_argument { const void *data; const char *name; };
++
++static BOOL zmd_launcher_quit(HMODULE qt)
++{
++    void * (CDECL *instance)(void);
++    unsigned char (CDECL *invoke)(void *, const char *, int,
++        struct zmd_qt_argument, struct zmd_qt_argument, struct zmd_qt_argument,
++        struct zmd_qt_argument, struct zmd_qt_argument, struct zmd_qt_argument,
++        struct zmd_qt_argument, struct zmd_qt_argument, struct zmd_qt_argument,
++        struct zmd_qt_argument);
++    struct zmd_qt_argument empty = {NULL, NULL};
++    void *app;
++
++    instance = (void *)GetProcAddress(qt, "?instance@QCoreApplication@@SAPEAV1@XZ");
++    invoke = (void *)GetProcAddress(qt,
++        "?invokeMethod@QMetaObject@@SA_NPEAVQObject@@PEBDW4ConnectionType@Qt@@VQGenericArgument@@333333333@Z");
++    if (!instance || !invoke || !(app = instance())) return FALSE;
++    /* Qt::QueuedConnection = 2; this is the launcher's own tray Exit slot. */
++    return invoke(app, "OnTrayReqExitApp", 2, empty, empty, empty, empty, empty,
++                  empty, empty, empty, empty, empty);
++}
++#endif
++
+ /***********************************************************************
+  *              macdrv_app_quit_request
+  */
+@@ -206,6 +234,48 @@
+ 
+     if (!qi->wins || !EnumWindows(get_process_windows, (LPARAM)qi))
+         goto fail;
++
++    /* zmd-mac: Unity handles a regular close, but may veto session-end on
++     * auxiliary windows. Only the opt-in Endfield session uses this path. */
++    if (!params->flags && GetEnvironmentVariableW(L"ZMD_SESSION_ID", NULL, 0))
++    {
++        WCHAR image[MAX_PATH], *name;
++#ifdef _WIN64
++        HMODULE qt;
++#endif
++        GetModuleFileNameW(NULL, image, ARRAY_SIZE(image));
++        name = wcsrchr(image, '\\');
++#ifdef _WIN64
++        if (name && !wcsicmp(name + 1, L"Games.exe"))
++        {
++            qt = GetModuleHandleW(L"Qt5Core.dll");
++            if (qt && zmd_launcher_quit(qt))
++                TRACE("zmd: queued official launcher tray Exit action\n");
++            else
++                WARN("zmd: launcher tray Exit action unavailable; preserving session\n");
++            quit_reply(FALSE);
++            HeapFree(GetProcessHeap(), 0, qi->wins);
++            HeapFree(GetProcessHeap(), 0, qi);
++            return STATUS_SUCCESS;
++        }
++#endif
++        if (name && !wcsicmp(name + 1, L"Endfield.exe"))
++        {
++            for (i = 0; i < qi->count; i++)
++            {
++                WCHAR class_name[64] = {0};
++                GetClassNameW(qi->wins[i], class_name, ARRAY_SIZE(class_name));
++                if (!GetWindow(qi->wins[i], GW_OWNER) &&
++                    (IsWindowVisible(qi->wins[i]) || !wcscmp(class_name, L"UnityWndClass")))
++                    PostMessageW(qi->wins[i], WM_CLOSE, 0, 0);
++            }
++            /* Do not let Cocoa terminate Unity before its normal cleanup. */
++            quit_reply(FALSE);
++            HeapFree(GetProcessHeap(), 0, qi->wins);
++            HeapFree(GetProcessHeap(), 0, qi);
++            return STATUS_SUCCESS;
++        }
++    }
+ 
+     qi->flags = params->flags;
+     qi->result = TRUE;
+--- a/dlls/ntdll/unix/loader.c
++++ b/dlls/ntdll/unix/loader.c
+@@ -689,6 +689,17 @@
+ static void replace_wineloader_path_with_link(char **wineloader_path, const char *image_path)
+ {
+     char *app_name = extract_exe_name(image_path);
++    if (app_name && getenv("ZMD_SESSION_ID"))
++    {
++        const char *label = NULL;
++        if (!strcasecmp(app_name, "Endfield.exe")) label = "终末地";
++        else if (!strcasecmp(app_name, "Games.exe")) label = "鹰角启动器";
++        if (label)
++        {
++            free(app_name);
++            app_name = strdup(label);
++        }
++    }
+     if (app_name)
+     {
+         char *preloader_path = create_preloader_link(*wineloader_path, app_name);

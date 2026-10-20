@@ -1,0 +1,4 @@
+LIBRARY Qt5Core
+EXPORTS
+    "?instance@QCoreApplication@@SAPEAV1@XZ"=qt_instance
+    "?invokeMethod@QMetaObject@@SA_NPEAVQObject@@PEBDW4ConnectionType@Qt@@VQGenericArgument@@333333333@Z"=qt_invoke

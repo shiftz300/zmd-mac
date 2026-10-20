@@ -1,0 +1,37 @@
+--- a/src/nvapi/nvapi.cpp
++++ b/src/nvapi/nvapi.cpp
+@@ -295,6 +295,25 @@
+   }
+ 
+   return NVAPI_OK;
++}
++
++NVAPI_INTERFACE
++NvAPI_GetLogicalGPUFromPhysicalGPU(NvPhysicalGpuHandle physical, NvLogicalGpuHandle *logical) {
++  if (!physical || !logical)
++    return NVAPI_INVALID_ARGUMENT;
++  NvPhysicalGpuHandle devices[NVAPI_MAX_PHYSICAL_GPUS];
++  NvU32 count = 0;
++  auto status = dxmt::NvAPI_EnumPhysicalGPUs(devices, &count);
++  if (status != NVAPI_OK)
++    return status;
++  for (NvU32 i = 0; i < count; i++) {
++    if (devices[i] == physical) {
++      // DXMT maps physical and logical handles to the same Metal registry ID.
++      *logical = reinterpret_cast<NvLogicalGpuHandle>(physical);
++      return NVAPI_OK;
++    }
++  }
++  return NVAPI_INVALID_ARGUMENT;
+ }
+ 
+ NVAPI_INTERFACE
+@@ -839,6 +858,8 @@
+     return (void *)&NvAPI_D3D_SetResourceHint;
+   case 0xe5ac921f:
+     return (void *)&NvAPI_EnumPhysicalGPUs;
++  case 0xadd604d1:
++    return (void *)&NvAPI_GetLogicalGPUFromPhysicalGPU;
+   case 0x48b3ea59:
+     return (void *)&NvAPI_EnumLogicalGPUs;
+   case 0x34ef9506:

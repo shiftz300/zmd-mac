@@ -1,0 +1,51 @@
+From 50102f994b406f58f56d5d09f2ad20f9b90390a2 Mon Sep 17 00:00:00 2001
+From: windlandneko <ch.ar.lie@outlook.com>
+Date: Fri, 16 Oct 2026 14:23:55 +0800
+Subject: [PATCH] fix(nvngx): allow resources stored as `void *` to be read as
+ D3D resources
+
+Signed-off-by: Charlie <ch.ar.lie@outlook.com>
+Signed-off-by: Feifan He <feifan@codeweavers.com>
+---
+ src/nvngx/nvngx_parameter.hpp | 28 ++++++++++++++++++++++++++++
+ 1 file changed, 28 insertions(+)
+
+diff --git a/src/nvngx/nvngx_parameter.hpp b/src/nvngx/nvngx_parameter.hpp
+index 93f06c845..5c5d2daa2 100644
+--- a/src/nvngx/nvngx_parameter.hpp
++++ b/src/nvngx/nvngx_parameter.hpp
+@@ -19,6 +19,34 @@ castable(From val, To *out) {
+   return false;
+ }
+ 
++template <>
++inline bool
++castable(void *val, ID3D11Resource **out) {
++  *out = static_cast<ID3D11Resource *>(val);
++  return true;
++}
++
++template <>
++inline bool
++castable(ID3D11Resource *val, void **out) {
++  *out = static_cast<void *>(val);
++  return true;
++}
++
++template <>
++inline bool
++castable(void *val, ID3D12Resource **out) {
++  *out = static_cast<ID3D12Resource *>(val);
++  return true;
++}
++
++template <>
++inline bool
++castable(ID3D12Resource *val, void **out) {
++  *out = static_cast<void *>(val);
++  return true;
++}
++
+ template <>
+ inline bool
+ castable(int val, unsigned int *out) {
