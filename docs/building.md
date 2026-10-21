@@ -112,5 +112,30 @@ CI 将其作为 `third-party-source-inputs` artifact 上传。该脚本与完整
 发布修改后的第三方二进制时，应一同提供适用许可证要求的对应源码与构建资料，
 不要只上传个人已安装应用。参见 [第三方组件](../THIRD_PARTY_NOTICES.md)。
 
-当前只使用临时签名，没有 Developer ID 公证。工作流只上传构建 artifact，
-不会创建公开 Release。需要公证时应另行配置维护者证书与签名流程。
+当前只使用临时签名，没有 Developer ID 公证。需要公证时应另行配置维护者证书与签名流程。
+
+## 自动 GitHub Release
+
+推送 `v主版本.次版本.修订号` 标签后，`Build` 会自动完成构建和校验，再发布 GitHub Release。
+例如 `v0.5.0` 为正式版，`v0.5.0-rc.1` 为预发布版；预发布版不会标记为 Latest。
+标签的数字版本必须与安装包中的应用版本一致。更新版本时同步修改
+`package-distribution.py`、`package-pkg.py`、`install-native-launcher.py` 的版本字段。
+
+```sh
+git tag -a v0.5.0 -m "Release v0.5.0"
+git push origin v0.5.0
+```
+
+发布附件固定为 PKG、CLI ZIP、项目源码 ZIP、第三方源码 tar.gz，以及各自的 SHA-256 文件。
+独立发布 job 在构建及源码归档成功后才运行，只给该 job `contents: write`，使用自带的
+`GITHUB_TOKEN`，不需要额外配置个人访问令牌。先建立草稿，上传并确认八个附件齐全后公开。
+上传失败会保留草稿；重跑同一提交可续传。不会覆盖已公开的 Release，也不会接管其他提交的草稿。
+普通分支推送和分支上的手动构建只上传 Actions artifact；手动选择版本标签运行时也会发布。
+此流程不会自动创建或推送版本标签。
+
+本地验证发布附件（不会连接 GitHub）：
+
+```sh
+python3 scripts/publish-release.py --tag v0.5.0 --directory release --check-only
+python3 scripts/test-release.py
+```

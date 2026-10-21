@@ -8,7 +8,7 @@ permissions:
   contents: read
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
 jobs:
   build:
     runs-on: xcode-27
@@ -57,3 +57,26 @@ jobs:
             release/third-party-sources.tar.gz.sha256
           compression-level: 0
           if-no-files-found: error
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: zmd-mac-macos-arm64
+          path: release
+      - uses: actions/download-artifact@v4
+        with:
+          name: third-party-source-inputs
+          path: release
+      - name: Verify and publish release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python3 scripts/publish-release.py --tag "$RELEASE_TAG" --directory release

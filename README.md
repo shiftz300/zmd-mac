@@ -8,7 +8,10 @@
 
 ## 使用预构建包
 
-从 GitHub Actions 的 `Build` 工作流下载 `zmd-mac-macos-arm64` artifact，解压后选择 PKG 或 ZIP。维护者需先推送源码并完成工作流；本地构建不代表 GitHub 已有产物。
+从 [GitHub Releases](https://github.com/shiftz300/zmd-mac/releases) 下载 PKG 或 ZIP。
+如果尚无已发布版本，可在 [Build 工作流](https://github.com/shiftz300/zmd-mac/actions/workflows/build.yml)
+的成功运行中下载 `zmd-mac-macos-arm64` artifact，解压后选择 PKG 或 ZIP。
+Release 同时提供 SHA-256 校验文件、项目源码和第三方源码；本地构建成功不代表线上产物已经生成。
 
 ### PKG（图形安装）
 
@@ -55,7 +58,7 @@ PKG 需要管理员授权，把共用安装资源放到 `/Library/Application Su
 
 打开应用时默认同时显示原生 **运行设置** 窗口：
 
-- **运行**：切换图形后端、窗口模式、MSync 和 Metal 性能面板。
+- **运行**：切换图形后端、Vulkan 稳定版／实验版、队列提交方式、窗口模式、MSync 和 Metal 性能面板。
 - **调试**：选择 DXMT / Wine 日志级别，控制 DXMT 着色器缓存、Metal API / 着色器校验，打开日志文件夹。
 - 取消「打开启动器时显示设置」后，下次不再自动弹出；仍可在启动器或游戏的左上角应用菜单选「终末地设置…」，或按 **⌘,** 打开。
 
@@ -79,6 +82,12 @@ PKG 需要管理员授权，把共用安装资源放到 `/Library/Application Su
 
 # 恢复 Vulkan，窗口模式交给游戏自己控制
 ./zmd configure --app "$HOME/Applications/终末地.app" --renderer vulkan --window game
+
+# Vulkan 后台队列实验：只改变提交方式，不是异步着色器编译
+./zmd configure --app "$HOME/Applications/终末地.app" --renderer vulkan --vulkan-queue async
+
+# 恢复稳定版 MoltenVK 与默认队列
+./zmd configure --app "$HOME/Applications/终末地.app" --renderer vulkan --moltenvk stable --vulkan-queue default
 ```
 
 配置在下次启动生效：正常退出游戏和启动器，再打开应用。`--hud off` 关闭面板；`--msync off|on` 用于同场景对照。更多方法见 [调优](docs/tuning.md)。
@@ -90,19 +99,36 @@ PKG 需要管理员授权，把共用安装资源放到 `/Library/Application Su
 它保存在独立目录；`vulkan` 和原版 `dxmt` 均可切回，重启时自动还原 prefix 入口。
 这不是 FSR 或帧生成修复，也不保证比 Vulkan 更快。
 
+MoltenVK 实验版为可选组件，默认发行构建只包含稳定版。维护者可按[构建说明](docs/building.md#可选-moltenvk-实验版)
+编译并打包实验库；安装了实验库的应用可在设置里切换，或使用 `--moltenvk experimental`。
+实验库与稳定库分别保存，不需要复制游戏。当前实验版已通过基础渲染检查，终末地内的 FSR、插帧和性能仍待验证。
+建议先比较版本，再单独比较队列方式；每次改动后正常退出游戏与启动器并重开。
+
 包装入口在后台运行，Dock 只保留实际窗口的「鹰角启动器」和「终末地」图标。
 在任一图标上选择「退出」，会先让游戏按正常关窗流程退出，再结束启动器会话。
 不显示额外图标、退出角标或选择框；游戏取消退出或没有响应时，不会因超时强行结束。
 
 游戏、更新缓存和登录状态存放在应用内部 `Contents/SharedSupport/prefix`。升级本项目时不要覆盖这份应用；退出后可整体移动或备份。仅删除桌面替身不会删除游戏。
 
-## 自动构建
+## 自动构建与 Release
 
 上传本项目源码到 GitHub 后：
 
-- push 到 `main`／`master`、推送 `v*` 标签或手动运行 `Build`：从锁定来源构建 Wine，编译原生 CLI 和 .app 入口，上传 PKG、ZIP、校验值及源码资料。
+- push 到 `main`／`master` 或在分支上手动运行 `Build`：从锁定来源构建 Wine，编译原生 CLI 和 .app 入口，上传构建 artifact。
+- 推送版本标签（如 `v0.5.0`）：构建、包校验及源码归档全部成功后，自动发布 GitHub Release。
+- 标签带后缀（如 `v0.5.0-rc.1`）：自动发布为预发布版，不替换 Latest。
 - pull request：运行轻量检查，避免每次都重编 Wine。
-- 工作流使用 `xcode-27` Apple Silicon runner，不自动发布 Release、不提交或推送任何文件。
+- 构建使用 `xcode-27` Apple Silicon runner；发布 job 使用 GitHub 自带令牌，无需配置额外 Token。流程不会自动创建标签或提交源码。
+
+维护者发布已确认的版本时：
+
+```sh
+git tag -a v0.5.0 -m "Release v0.5.0"
+git push origin v0.5.0
+```
+
+标签数字版本须与打包的应用版本一致。发布附件包括 PKG、CLI ZIP、项目源码 ZIP、第三方源码 tar.gz
+及各自校验文件。附件先上传到草稿，齐全后再公开；中断可重跑同一提交，不覆盖已公开版本。
 
 开发机已有 macOS 27、Command Line Tools、Rosetta 2、Python 3 和 Git 时：
 

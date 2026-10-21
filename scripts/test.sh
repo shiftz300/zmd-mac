@@ -19,3 +19,4 @@ build/tests/zmd --help
 python3 scripts/test-cli.py build/tests/zmd
 python3 scripts/test-metalfx.py
 python3 scripts/test-build.py
+python3 scripts/test-release.py
