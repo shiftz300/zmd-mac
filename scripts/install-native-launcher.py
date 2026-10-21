@@ -23,6 +23,9 @@ runtime_record = json.loads((CONTENTS / "SharedSupport/runtime/provenance.json")
 session_patch = hashlib.sha256((ROOT / "scripts/patches/wine-session-dock.patch").read_bytes()).hexdigest()
 if not any(p.get("sha256") == session_patch for p in runtime_record.get("wine", {}).get("local_patches", [])):
     raise SystemExit("Install the matching Wine Dock/session runtime patch before hiding the native entry.")
+display_hash = hashlib.sha256((ROOT / "scripts/patches/wine-display-monitors.patch").read_bytes()).hexdigest()
+if not any(p.get("sha256") == display_hash for p in runtime_record.get("wine", {}).get("local_patches", [])):
+    raise SystemExit("Install the matching Wine disconnected-monitor fix before updating the entry.")
 WORK = Path(os.environ.get("ZMD_WORK_DIR", ROOT)).expanduser().resolve()
 BUILD = WORK / "build/native-launcher"
 BUILD.mkdir(parents=True, exist_ok=True)
@@ -54,7 +57,7 @@ for source, target in (
     temporary.chmod(0o755)
     temporary.replace(target)
 metadata = plistlib.loads((CONTENTS / "Info.plist").read_bytes())
-metadata["CFBundleShortVersionString"] = "0.5.7"
+metadata["CFBundleShortVersionString"] = "0.5.8"
 metadata["CFBundleVersion"] = "5"
 metadata["CFBundleName"] = APP.stem
 metadata["CFBundleDisplayName"] = APP.stem

@@ -62,6 +62,22 @@ with tempfile.TemporaryDirectory(prefix="zmd cli ") as temporary:
     macos = app / "Contents/MacOS"
     macos.mkdir()
     shutil.copy2(Path(__file__).parent / "app-launch.sh", macos / "launch.sh")
+    # Resolution defaults preserve game choice; input validation is atomic.
+    for size in ["1920x1080", "3840x2160", "3440x1440", "game"]:
+        subprocess.run([exe, "configure", "--app", str(app), "--resolution", size,
+                        "--window", "fullscreen"], check=True)
+        report = json.loads(subprocess.check_output([exe, "inspect", "--app", str(app)]))
+        assert report["resolution"] == size and report["window"] == "fullscreen"
+    for size in ["0x0", "03120x1440", "99999x1080", "1920x1080 -bad", "1920x1080;touch nope", "hello", "-1x1080"]:
+        result = subprocess.run([exe, "configure", "--app", str(app), "--resolution", size,
+                                 "--hud", "off"], capture_output=True)
+        assert result.returncode != 0 and (support / "metal-hud.conf").read_text() == "on\n"
+    # A legacy launcher must reject new options before writing any config.
+    current_launch = (macos / "launch.sh").read_text()
+    (macos / "launch.sh").write_text("#!/bin/bash\n")
+    result = subprocess.run([exe, "configure", "--app", str(app), "--resolution", "1920x1080"], capture_output=True)
+    assert result.returncode != 0 and (support / "resolution.conf").read_text() == "game\n"
+    (macos / "launch.sh").write_text(current_launch)
     # Reject an unavailable test backend before changing any requested setting.
     result = subprocess.run([exe, "configure", "--app", str(app), "--renderer",
                              "dxmt-metalfx", "--hud", "off"], capture_output=True)
@@ -141,3 +157,33 @@ with tempfile.TemporaryDirectory(prefix="zmd cli ") as temporary:
     result = subprocess.run(["bash", str(wrapper)], capture_output=True)
     assert result.returncode == 2 and not result.stdout
     print("PASS: preserve apps, configuration preflight, startup preference, debug environment, HUD/MSync and renderer rollback")
+
+with tempfile.TemporaryDirectory(prefix="zmd display ") as temporary:
+    app = Path(temporary) / "Display.app"
+    macos = app / "Contents/MacOS"
+    support = app / "Contents/SharedSupport"
+    macos.mkdir(parents=True)
+    (support / "scripts").mkdir(parents=True)
+    (support / "runtime/wine/bin").mkdir(parents=True)
+    shutil.copy2(Path(__file__).parent / "app-launch.sh", macos / "launch.sh")
+    (support / "scripts/prepare-metalfx.sh").write_text("#!/bin/bash\nexit 0\n")
+    (support / "scripts/wine.sh").write_text('#!/bin/bash\nif [ "$1" = reg ]; then printf "%s\\n" "$@" > captured-args; fi\n')
+    server = support / "runtime/wine/bin/wineserver"
+    server.write_text("#!/bin/bash\nexit 0\n")
+    server.chmod(0o755)
+    (support / "renderer.conf").write_text("vulkan\n")
+    for mode, suffix in [("game", ""), ("windowed", " -screen-fullscreen 0"),
+                         ("fullscreen", " -screen-fullscreen 1 -window-mode borderless")]:
+        (support / "window-mode.conf").write_text(mode + "\n")
+        for size in ["game", "3840x2160"]:
+            (support / "resolution.conf").write_text(size + "\n")
+            subprocess.run(["bash", str(macos / "launch.sh")], check=True)
+            args = (support / "captured-args").read_text().splitlines()
+            flags = args[args.index("/d") + 1]
+            expected = "-force-vulkan" + suffix + (" -screen-width 3840 -screen-height 2160" if size != "game" else "")
+            assert flags == expected, (flags, expected)
+    (support / "resolution.conf").write_text("1920x1080; touch injected\n")
+    (support / "captured-args").unlink()
+    result = subprocess.run(["bash", str(macos / "launch.sh")], capture_output=True)
+    assert result.returncode == 2 and not (support / "captured-args").exists()
+print("PASS: display modes, resolution arguments, validation and game-settings fallback")

@@ -23,8 +23,22 @@ if [ -f window-mode.conf ]; then IFS= read -r ZMD_WINDOW < window-mode.conf; fi
 case "$ZMD_WINDOW" in
     game) ;;
     windowed) ZMD_FLAGS="$ZMD_FLAGS -screen-fullscreen 0" ;;
+    fullscreen) ZMD_FLAGS="$ZMD_FLAGS -screen-fullscreen 1 -window-mode borderless" ;;
     *) echo "Unknown window mode: $ZMD_WINDOW" >> "$ZMD_LOG"; exit 2 ;;
 esac
+ZMD_RESOLUTION=game
+if [ -f resolution.conf ]; then IFS= read -r ZMD_RESOLUTION < resolution.conf; fi
+if [ "$ZMD_RESOLUTION" != game ]; then
+    if [[ ! "$ZMD_RESOLUTION" =~ ^[1-9][0-9]{2,4}x[1-9][0-9]{2,4}$ ]]; then
+        echo "Invalid resolution: $ZMD_RESOLUTION" >> "$ZMD_LOG"; exit 2
+    fi
+    ZMD_WIDTH="${ZMD_RESOLUTION%x*}"
+    ZMD_HEIGHT="${ZMD_RESOLUTION#*x}"
+    if (( ZMD_WIDTH < 320 || ZMD_WIDTH > 16384 || ZMD_HEIGHT < 320 || ZMD_HEIGHT > 16384 )); then
+        echo "Resolution out of range" >> "$ZMD_LOG"; exit 2
+    fi
+    ZMD_FLAGS="$ZMD_FLAGS -screen-width $ZMD_WIDTH -screen-height $ZMD_HEIGHT"
+fi
 printf 'Renderer: %s; game arguments: %s\n' "$ZMD_SELECTED" "$ZMD_FLAGS" >> "$ZMD_LOG"
 bash "$ZMD_SUPPORT/scripts/prepare-metalfx.sh" "$ZMD_SELECTED" >> "$ZMD_LOG" 2>&1
 bash "$ZMD_SUPPORT/scripts/wine.sh" reg add \

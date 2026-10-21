@@ -184,8 +184,15 @@ func copyDirectory(_ source: URL, _ destination: URL, log: FileHandle?) throws {
 }
 
 func validateConfiguration(_ args: [String: String]) throws {
+    if let resolution = args["--resolution"], resolution != "game" {
+        let parts = resolution.split(separator: "x", omittingEmptySubsequences: false)
+        try check(parts.count == 2 && parts.allSatisfy {
+            guard let value = Int($0), String(value) == $0 else { return false }
+            return (320...16384).contains(value)
+        }, "分辨率请填写 宽x高，每边为 320–16384 像素，或选择使用游戏设置。")
+    }
     for (key, values) in [
-        "--renderer": ["vulkan", "dxmt", "dxmt-metalfx"], "--window": ["windowed", "game"],
+        "--renderer": ["vulkan", "dxmt", "dxmt-metalfx"], "--window": ["windowed", "fullscreen", "game"],
         "--moltenvk": ["stable", "experimental"], "--vulkan-queue": ["default", "async"],
         "--hud": ["on", "off"], "--msync": ["on", "off"], "--settings-window": ["on", "off"],
         "--dxmt-log": ["default", "error", "debug", "none"], "--wine-log": ["errors", "warnings", "off"],
@@ -213,6 +220,11 @@ func configure(_ app: URL, _ args: [String: String]) throws {
     try validateConfiguration(args)
     let support = try supportDirectory(app)
     let wrapper = try String(contentsOf: support.appendingPathComponent("scripts/wine.sh"), encoding: .utf8)
+    if args["--resolution"] != nil || args["--window"] == "fullscreen" {
+        let launch = try String(contentsOf: app.appendingPathComponent("Contents/MacOS/launch.sh"), encoding: .utf8)
+        try check(launch.contains("resolution.conf") && launch.contains("-window-mode borderless"),
+                  "请先更新应用包装层以支持显示设置；配置未写入。")
+    }
     for (option, marker) in ["--hud": "metal-hud.conf", "--msync": "msync.conf",
                              "--moltenvk": "moltenvk.conf", "--vulkan-queue": "vulkan-queue.conf",
                              "--dxmt-log": "dxmt-log.conf", "--wine-log": "wine-log.conf",
@@ -280,6 +292,7 @@ func configure(_ app: URL, _ args: [String: String]) throws {
 
 let configurationFields = [
     ("--renderer", "renderer.conf", "dxmt"), ("--window", "window-mode.conf", "game"),
+    ("--resolution", "resolution.conf", "game"),
     ("--moltenvk", "moltenvk.conf", "stable"), ("--vulkan-queue", "vulkan-queue.conf", "default"),
     ("--hud", "metal-hud.conf", "off"), ("--msync", "msync.conf", "on"),
     ("--settings-window", "settings-window.conf", "on"),

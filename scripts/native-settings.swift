@@ -19,10 +19,11 @@ enum LauncherStatus: Equatable {
 
 /// A modeless AppKit window. It edits the same files as `zmd configure` and
 /// never launches, stops or reconfigures a running Wine process.
-final class SettingsWindowController: NSWindowController, NSWindowDelegate {
+final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSComboBoxDelegate, NSTextFieldDelegate {
     private let appURL: URL
     private let renderer = NSPopUpButton()
     private let windowMode = NSPopUpButton()
+    private let resolution = NSComboBox()
     private let moltenvk = NSPopUpButton()
     private let vulkanQueue = NSPopUpButton()
     private let msync = NSButton(checkboxWithTitle: "启用 MSync", target: nil, action: nil)
@@ -98,7 +99,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         populate(renderer, [("Vulkan · MoltenVK", "vulkan"),
                             ("DirectX 11 · DXMT", "dxmt"),
                             ("DirectX 11 · DXMT + MetalFX", "dxmt-metalfx")])
-        populate(windowMode, [("窗口化启动", "windowed"), ("使用游戏设置", "game")])
+        populate(windowMode, [("窗口化启动", "windowed"), ("无边框全屏启动", "fullscreen"), ("使用游戏设置", "game")])
+        resolution.addItems(withObjectValues: ["使用游戏设置", "1920 × 1080", "2560 × 1440", "3840 × 2160",
+                                              "1920 × 1200", "2560 × 1600", "3440 × 1440", "3840 × 1600", "5120 × 1440"])
+        resolution.isEditable = true
+        resolution.completes = false
+        resolution.delegate = self
+        resolution.widthAnchor.constraint(equalToConstant: 278).isActive = true
+        resolution.setAccessibilityLabel("启动分辨率")
+        resolution.toolTip = "可选择预设或输入宽 × 高（像素）；只覆盖启动尺寸，游戏可能随后应用自己的设置。"
         populate(moltenvk, [("稳定版", "stable"), ("实验版", "experimental")])
         populate(vulkanQueue, [("默认（同步）", "default"), ("后台队列（实验）", "async")])
         moltenvk.setAccessibilityLabel("Vulkan 版本")
@@ -126,8 +135,17 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         runtimeTab.label = "运行"
         runtimeTab.view = pane([
             [label("图形后端"), renderer], [label("Vulkan 版本"), moltenvk],
-            [label("队列提交"), vulkanQueue], [label("窗口模式"), windowMode],
+            [label("队列提交"), vulkanQueue],
             [label("同步"), msync], [label("性能监测"), hud],
+        ])
+        let displayTab = NSTabViewItem(identifier: "display")
+        displayTab.label = "显示"
+        let readScreen = NSButton(title: "读取当前屏幕", target: self, action: #selector(readCurrentScreen))
+        readScreen.bezelStyle = .rounded
+        readScreen.toolTip = "把设置窗口移到目标屏幕后点击。读取当前缩放下的桌面尺寸，不移动游戏窗口；更高输出分辨率可手动选择。"
+        displayTab.view = pane([
+            [label("窗口模式"), windowMode], [label("启动分辨率"), resolution],
+            [label("屏幕尺寸"), readScreen],
         ])
         let logs = NSButton(title: "打开日志", target: self, action: #selector(openLogs))
         logs.bezelStyle = .rounded
@@ -145,6 +163,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             [NSGridCell.emptyContentView, shaderValidation], [label("工具"), tools],
         ])
         tabs.addTabViewItem(runtimeTab)
+        tabs.addTabViewItem(displayTab)
         tabs.addTabViewItem(debugTab)
         tabs.heightAnchor.constraint(equalToConstant: 268).isActive = true
         message.font = .systemFont(ofSize: 12)
@@ -235,6 +254,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             loaded = try configurationValues(appURL)
             select(renderer, value: loaded["--renderer"]!)
             select(windowMode, value: loaded["--window"]!)
+            let size = loaded["--resolution"] ?? "game"
+            resolution.stringValue = size == "game" ? "使用游戏设置" : size.replacingOccurrences(of: "x", with: " × ")
             select(moltenvk, value: loaded["--moltenvk"]!)
             select(vulkanQueue, value: loaded["--vulkan-queue"]!)
             updateVulkanControls()
@@ -257,6 +278,18 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         message.stringValue = "更改尚未保存。"
     }
 
+    func controlTextDidChange(_ notification: Notification) { controlChanged() }
+    func comboBoxSelectionDidChange(_ notification: Notification) { controlChanged() }
+
+    @objc private func readCurrentScreen() {
+        guard let screen = window?.screen else { showFailure(ZMDError("无法读取当前屏幕。")); return }
+        // Wine uses desktop coordinates with this runtime's default RetinaMode off.
+        let size = screen.frame.size
+        resolution.stringValue = "\(Int(size.width.rounded())) × \(Int(size.height.rounded()))"
+        controlChanged()
+        message.stringValue = "已读取\(screen.localizedName)，尚未保存。"
+    }
+
     private func updateVulkanControls() {
         let enabled = renderer.selectedItem?.representedObject as? String == "vulkan"
         moltenvk.isEnabled = enabled
@@ -277,7 +310,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func saveSettings() {
+        window?.makeFirstResponder(nil)
+        let size = resolution.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = size.replacingOccurrences(of: "×", with: "x").lowercased().filter { !$0.isWhitespace }
         let values = ["--renderer": renderer.selectedItem?.representedObject as? String ?? "",
+                      "--resolution": size == "使用游戏设置" ? "game" : normalized,
                       "--moltenvk": moltenvk.selectedItem?.representedObject as? String ?? "",
                       "--vulkan-queue": vulkanQueue.selectedItem?.representedObject as? String ?? "",
                       "--window": windowMode.selectedItem?.representedObject as? String ?? "",

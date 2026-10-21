@@ -51,6 +51,9 @@ def build(args):
     if not any(p.get("sha256") == session_patch_hash for p in
                provenance.get("wine", {}).get("local_patches", [])):
         raise SystemExit("Runtime needs the Wine Dock/session patch before packaging the hidden launcher.")
+    display_hash = digest(PROJECT / "scripts/patches/wine-display-monitors.patch")
+    if not any(p.get("sha256") == display_hash for p in provenance.get("wine", {}).get("local_patches", [])):
+        raise SystemExit("Runtime needs the Wine disconnected-monitor fix before packaging.")
     for name, expected in provenance.get("session_modules", {}).items():
         if digest(runtime / name) != expected:
             raise SystemExit(f"Wine session module checksum mismatch: {name}")
@@ -80,7 +83,7 @@ def build(args):
             "CFBundleDevelopmentRegion": "zh_CN", "CFBundleDisplayName": "鹰角启动器",
             "CFBundleName": "鹰角启动器", "CFBundleIdentifier": "local.zmdmac.endfield.template",
             "CFBundleExecutable": "Endfield", "CFBundlePackageType": "APPL",
-            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.7",
+            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.8",
             "CFBundleVersion": "5", "LSMinimumSystemVersion": "27.0",
             "LSMultipleInstancesProhibited": True, "NSHighResolutionCapable": True,
             # The payload is not an installed app. Installation makes its copy discoverable.

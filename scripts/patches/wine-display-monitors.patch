@@ -1,0 +1,23 @@
+--- a/dlls/win32u/sysparams.c
++++ b/dlls/win32u/sysparams.c
+@@ -2594,6 +2594,20 @@
+         }
+ 
+         NtClose( hkey );
++    }
++
++    /* Registry enumeration also includes disconnected monitors. Only linked
++     * monitors have a source and a nonzero HMONITOR. An orphan otherwise looks
++     * like the service-only 1024x768 virtual monitor and returns NULL from
++     * MonitorFromWindow(), breaking Unity's fullscreen/display selection. */
++    {
++        struct monitor *next;
++        LIST_FOR_EACH_ENTRY_SAFE( monitor, next, &monitors, struct monitor, entry )
++        {
++            if (monitor->source) continue;
++            list_remove( &monitor->entry );
++            monitor_release( monitor );
++        }
+     }
+ 
+     if ((ret = !list_empty( &sources ) && !list_empty( &monitors )))

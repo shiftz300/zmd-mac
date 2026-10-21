@@ -11,12 +11,12 @@ func help() {
     zmd-mac — 终末地 macOS 安装器
 
     zmd install [--exe 官方安装包.exe] [--output ~/Applications/鹰角启动器.app]
-                [--renderer vulkan|dxmt|dxmt-metalfx] [--window windowed|game]
+                [--renderer vulkan|dxmt|dxmt-metalfx] [--window windowed|fullscreen|game]
                 [--region cn|global] [--sha256 校验值] [--desktop]
     zmd configure --app 应用.app [--renderer vulkan|dxmt|dxmt-metalfx]
                   [--moltenvk stable|experimental] [--vulkan-queue default|async]
-                  [--window windowed|game] [--hud on|off] [--msync on|off]
-                  [--settings-window on|off]
+                  [--window windowed|fullscreen|game] [--hud on|off] [--msync on|off]
+                  [--settings-window on|off] [--resolution game|宽x高]
                   [--dxmt-log default|error|debug|none] [--wine-log errors|warnings|off]
                   [--shader-cache on|off] [--metal-validation on|off] [--shader-validation on|off]
     zmd inspect --app 应用.app
@@ -90,6 +90,7 @@ func inspect(_ app: URL) throws {
         .trimmingCharacters(in: .whitespacesAndNewlines)) ?? "cn"
     for (key, file, fallback) in [
         ("renderer", "renderer.conf", "dxmt"), ("window", "window-mode.conf", "game"),
+        ("resolution", "resolution.conf", "game"),
         ("moltenvk_channel", "moltenvk.conf", "stable"), ("vulkan_queue", "vulkan-queue.conf", "default"),
         ("metal_hud", "metal-hud.conf", "off"), ("msync", "msync.conf", "on"),
         ("settings_window", "settings-window.conf", "on"),
@@ -301,7 +302,7 @@ do {
     case "install":
         try install(options(arguments.dropFirst(), allowed: ["--exe", "--output", "--renderer", "--window", "--region", "--sha256", "--desktop"]))
     case "configure":
-        let args = try options(arguments.dropFirst(), allowed: ["--app", "--renderer", "--window", "--hud", "--msync", "--settings-window",
+        let args = try options(arguments.dropFirst(), allowed: ["--app", "--renderer", "--window", "--resolution", "--hud", "--msync", "--settings-window",
                                                               "--moltenvk", "--vulkan-queue",
                                                               "--dxmt-log", "--wine-log", "--shader-cache", "--metal-validation", "--shader-validation"])
         try check(args["--app"] != nil && args.count > 1, "请指定 --app 和至少一项配置。")

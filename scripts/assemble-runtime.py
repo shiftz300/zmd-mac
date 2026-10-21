@@ -104,6 +104,7 @@ manifest = {
         name: hashlib.sha256((RUNTIME / name).read_bytes()).hexdigest()
         for name in (
             "wine/lib/wine/x86_64-unix/ntdll.so",
+            "wine/lib/wine/x86_64-unix/win32u.so",
             "wine/lib/wine/x86_64-unix/winemac.so",
             "wine/lib/wine/x86_64-windows/winemac.drv",
             "wine/lib/wine/i386-windows/winemac.drv",

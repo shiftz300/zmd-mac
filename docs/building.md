@@ -14,6 +14,7 @@ bash scripts/build-release.sh
 ```sh
 python3 scripts/test-native-launcher.py
 python3 scripts/test-wine-session.py
+python3 scripts/test-display.py
 ```
 
 该测试需要已登录的 macOS 桌面会话，只启动隐藏的隔离测试程序，
@@ -24,7 +25,9 @@ python3 scripts/test-wine-session.py
 
 `build-wine.sh` 在 FineWine 补丁之后运行 `prepare-session-patch.py`，应用本地
 `wine-session-dock.patch`。该补丁和哈希记录在运行库 provenance 的 `wine.local_patches`；
-相关 Wine 模块哈希记录在 `session_modules`。后台入口必须与该补丁一起升级，
+另应用 `wine-display-monitors.patch`，过滤没有关联活动显示源的遗留显示器记录，避免枚举出空句柄。
+显示测试检查屏幕句柄和隐藏窗口跨屏映射，不代替游戏内跨屏全屏验收。
+相关 Wine 模块（含 `win32u.so`）哈希记录在 `session_modules`。后台入口必须与该补丁一起升级，
 打包脚本会拒绝缺少匹配补丁的旧运行库。
 
 默认工作目录为 `.work`，输出为 `release/zmd-mac` 和
@@ -124,13 +127,13 @@ CI 将其作为 `third-party-source-inputs` artifact 上传。该脚本与完整
 ## 自动 GitHub Release
 
 推送 `v主版本.次版本.修订号` 标签后，`Build` 会自动完成构建和校验，再发布 GitHub Release。
-例如 `v0.5.7` 为正式版，`v0.5.7-rc.1` 为预发布版；预发布版不会标记为 Latest。
+例如 `v0.5.8` 为正式版，`v0.5.8-rc.1` 为预发布版；预发布版不会标记为 Latest。
 标签的数字版本必须与安装包中的应用版本一致。更新版本时同步修改
 `package-distribution.py`、`package-pkg.py`、`install-native-launcher.py` 的版本字段。
 
 ```sh
-git tag -a v0.5.7 -m "Release v0.5.7"
-git push origin v0.5.7
+git tag -a v0.5.8 -m "Release v0.5.8"
+git push origin v0.5.8
 ```
 
 发布附件为 PKG、CLI ZIP 和第三方源码 tar.gz。项目源码使用 GitHub 自带的下载入口；
@@ -145,6 +148,6 @@ SHA-256 文件仅供 CI 发布前校验，不上传到 Release。第三方源码
 本地验证发布附件（不会连接 GitHub）：
 
 ```sh
-python3 scripts/publish-release.py --tag v0.5.7 --directory release --check-only
+python3 scripts/publish-release.py --tag v0.5.8 --directory release --check-only
 python3 scripts/test-release.py
 ```
