@@ -143,9 +143,85 @@ struct WineRuntime {
         "/t", "REG_SZ", "/d", flags, "/f",
       ], prepared: prepared)
     try check(status == 0, "Failed to configure game arguments: \(status)")
+    try applyGameResolution(prepared: prepared)
     let result = try execute(["C:\\EndfieldLauncher\\Launcher.exe"], prepared: prepared)
     let waited = try execute(["-w"], server: true)
     return result == 0 ? waited : result
+  }
+
+  /// Run only before starting the official launcher, after the previous session exited.
+  /// Endfield reapplies its own preferences after Unity processes command-line dimensions.
+  func applyGameResolution(prepared: [String: String]? = nil) throws {
+    let resolution = try setting("resolution", "game")
+    try validateConfiguration(["--resolution": resolution])
+    guard resolution != "game" else { return }
+    let region = try GameRegion.parse(setting("region", "cn"))
+    let company = region == .cn ? "Hypergryph" : "Gryphline"
+    let key = "HKEY_CURRENT_USER\\Software\\\(company)\\Endfield"
+    let fm = FileManager.default
+    let temporary = support.appendingPathComponent(".display-" + UUID().uuidString)
+    try fm.createDirectory(at: temporary, withIntermediateDirectories: false,
+                           attributes: [.posixPermissions: 0o700])
+    defer { try? fm.removeItem(at: temporary) }
+    let exported = temporary.appendingPathComponent("export.reg")
+    let status = try execute(["reg", "export", key, exported.path, "/y"], prepared: prepared)
+    if status != 0 {
+      // First launch has no preferences yet. Existing keys must export successfully.
+      let saved = try? String(contentsOf: prefix.appendingPathComponent("user.reg"), encoding: .utf8)
+      try check(saved?.contains("[Software\\\\\(company)\\\\Endfield]") != true,
+                "无法备份游戏分辨率设置，未修改游戏配置。")
+      print("Game preferences not created yet; using startup resolution arguments.")
+      return
+    }
+    let text = try String(contentsOf: exported, encoding: .utf16)
+    let edit = try GameResolutionEdit(exported: text, key: key, resolution: resolution)
+    guard !edit.original.isEmpty else {
+      print("No known game resolution preferences; using startup resolution arguments.")
+      return
+    }
+    let backup = support.appendingPathComponent("display-resolution-original.reg")
+    if !fm.fileExists(atPath: backup.path) {
+      try edit.document(edit.original).write(to: backup, atomically: true, encoding: .utf16)
+    }
+    let update = temporary.appendingPathComponent("update.reg")
+    try edit.document(edit.updated).write(to: update, atomically: true, encoding: .utf16)
+    let imported = try execute(["reg", "import", update.path], prepared: prepared)
+    try check(imported == 0, "无法写入游戏分辨率，原值备份已保留。")
+    print("Applied game resolution preferences: \(resolution)")
+  }
+}
+
+/// Build a minimal .reg patch. Never include login data, defaults or other graphics settings.
+struct GameResolutionEdit {
+  let key: String
+  var original: [String] = []
+  var updated: [String] = []
+
+  init(exported: String, key: String, resolution: String) throws {
+    self.key = key
+    try validateConfiguration(["--resolution": resolution])
+    guard resolution != "game" else { return }
+    let dimensions = resolution.split(separator: "x").map { UInt32($0)! }
+    let pattern = #"^"(Screenmanager Resolution (?:Window )?(Width|Height)_h[0-9]+|video_resolution_(width|height)_h[0-9]+)"=dword:([0-9a-fA-F]{8})$"#
+    let regex = try NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+    var active = false
+    for raw in exported.components(separatedBy: .newlines) {
+      let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+      if line.hasPrefix("[") { active = line.caseInsensitiveCompare("[\(key)]") == .orderedSame }
+      guard active, let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+            let range = Range(match.range(at: 1), in: line) else { continue }
+      let name = String(line[range])
+      let value = dimensions[name.lowercased().contains("width") ? 0 : 1]
+      original.append(line)
+      updated.append("\"\(name)\"=dword:" + String(format: "%08x", value))
+    }
+    try check(original.isEmpty || (updated.contains { $0.lowercased().contains("video_resolution_width_h") }
+              && updated.contains { $0.lowercased().contains("video_resolution_height_h") }),
+              "游戏分辨率配置不完整，未修改。")
+  }
+
+  func document(_ lines: [String]) -> String {
+    "Windows Registry Editor Version 5.00\r\n\r\n[\(key)]\r\n" + lines.joined(separator: "\r\n") + "\r\n"
   }
 }
 

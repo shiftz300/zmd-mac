@@ -56,6 +56,15 @@ prefix 的 `windows/system32/nvngx.dll`，由 NGX SDK 检查磁盘入口；Wine 
 
 ## 验证范围
 
+自定义启动分辨率同时写入 Unity 启动参数和终末地已有的 `Screenmanager Resolution`
+及 `video_resolution_width/height` 宽高配置，防止游戏加载旧值覆盖参数。
+仅在新会话、官方启动器打开前写入；首次运行尚未生成游戏配置时只应用启动参数。
+原值保存在 `Contents/SharedSupport/display-resolution-original.reg`，只包含分辨率项。
+选择「使用游戏设置」后不再覆盖这些项，但不会自动还原之前的尺寸。
+这不会扩充游戏自身的下拉菜单，也不保证游戏接受任意自定义尺寸。
+实现依据本机注册表及 [Endfield Resolution Editor 的配置项说明](https://github.com/InfSein/endfield-resolution-editor#registry-keys-updated)。
+真实 Wine 的隔离写入测试可运行 `swift run zmd-dev test-resolution`。
+
 2026-10-20 的本机环境为 M5 Pro、24 GB、macOS 27.0.1。此前已完成
 32/64 位 Windows 执行、官方 HTTPS、DXMT 设备创建、Vulkan 窗口和交换链检查。
 用户确认从官方启动器进入国服，Vulkan 窗口正常。

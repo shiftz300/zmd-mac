@@ -23,7 +23,8 @@ do {
     "sources": ["--runtime", "--output"], "release": ["--tag", "--directory"],
     "update-app": ["--app"],
     "test-pkg": ["--package"], "test-display": ["--runtime"], "test-vulkan": ["--runtime"],
-    "test-session": ["--runtime"], "test-install": ["--distribution", "--cn-exe", "--global-exe"],
+    "test-session": ["--runtime"], "test-resolution": ["--runtime"],
+    "test-install": ["--distribution", "--cn-exe", "--global-exe"],
   ]
   let selected = arguments.first ?? "help"
   guard let allowed = values[selected] else { throw Failure("Unknown command: " + selected) }
@@ -107,6 +108,10 @@ do {
       vulkan: arguments[0] == "test-vulkan", runtime: pathOption("--runtime", work.at("runtime")))
   case "test-lifecycle": try testLifecycle()
   case "test-session": try testWineSession(pathOption("--runtime", work.at("runtime")))
+  case "test-resolution":
+    let test = work.at("build/tests/game-resolution-tests")
+    try compile(coreSources + ["Tests/GameResolutionTests.swift"], test)
+    try command([test.path, pathOption("--runtime", work.at("runtime")).path], timeout: 180)
   case "test-install":
     try testInstall(
       pathOption("--distribution"), cn: pathOption("--cn-exe"), global: pathOption("--global-exe"))
@@ -114,7 +119,7 @@ do {
     print(
       """
       zmd-dev — Swift development tools (no Python; minimal PKG shell hooks)
-      test | test-lifecycle | test-display | test-session | test-vulkan
+      test | test-lifecycle | test-display | test-session | test-vulkan | test-resolution
       test-pkg --package FILE [--static-only]
       test-install --distribution DIR --cn-exe FILE --global-exe FILE
       build | bootstrap [--sevenzip-only] | fetch | wine | runtime

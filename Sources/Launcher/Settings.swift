@@ -107,7 +107,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         resolution.delegate = self
         resolution.widthAnchor.constraint(equalToConstant: 278).isActive = true
         resolution.setAccessibilityLabel("启动分辨率")
-        resolution.toolTip = "可选择预设或输入宽 × 高（像素）；只覆盖启动尺寸，游戏可能随后应用自己的设置。"
+        resolution.toolTip = "可选择预设或输入宽 × 高（像素）。重启会话时同步游戏分辨率配置；使用游戏设置则停止覆盖。游戏下拉菜单可能不列出自定义尺寸。"
         populate(moltenvk, [("稳定版", "stable"), ("实验版", "experimental")])
         populate(vulkanQueue, [("默认（同步）", "default"), ("后台队列（实验）", "async")])
         moltenvk.setAccessibilityLabel("Vulkan 版本")

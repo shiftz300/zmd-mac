@@ -10,6 +10,7 @@ import Foundation
       ).write(to: URL(fileURLWithPath: destination))
     }
     if let mode = env["ZMD_PROBE_MODE"], mode == "reg", args.first == "reg" {
+      if args.count > 1 && args[1] == "export" { exit(1) }
       try JSONSerialization.data(withJSONObject: args).write(
         to: URL(
           fileURLWithPath: "captured-args",
