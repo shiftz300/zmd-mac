@@ -51,7 +51,7 @@ func packageDistribution(runtime: URL, sevenzip: URL, output: URL) throws {
   try mkdir(contents.at("MacOS"))
   try mkdir(support.at("logs"))
   try copy(project.at("Resources/prefix-settings.reg"), support.at("prefix-settings.reg"))
-  try write("1\n", support.at("runtime-interface"))
+  try write("2\n", support.at("runtime-interface"))
   try compile(coreSources + ["Sources/zmd/main.swift"], distribution.at("zmd"))
   try sign(distribution.at("zmd"))
   try compile(launcherSources, contents.at("MacOS/Endfield"))
@@ -215,7 +215,7 @@ func updateApp(_ app: URL) throws {
   let temporary = contents.at("MacOS/Endfield.new")
   try copy(fresh, temporary)
   try require(rename(temporary.path, entry.path) == 0, "Failed to replace entry")
-  try write("1\n", support.at("runtime-interface"))
+  try write("2\n", support.at("runtime-interface"))
   try copy(project.at("Resources/prefix-settings.reg"), support.at("prefix-settings.reg"))
   var metadata = try plist(contents.at("Info.plist"))
   metadata["CFBundleShortVersionString"] = version

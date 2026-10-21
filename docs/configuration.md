@@ -65,6 +65,13 @@ prefix 的 `windows/system32/nvngx.dll`，由 NGX SDK 检查磁盘入口；Wine 
 实现依据本机注册表及 [Endfield Resolution Editor 的配置项说明](https://github.com/InfSein/endfield-resolution-editor#registry-keys-updated)。
 真实 Wine 的隔离写入测试可运行 `swift run zmd-dev test-resolution`。
 
+「Retina 输出」对应 prefix 全局的 `HKCU\Software\Wine\Mac Driver\RetinaMode`。
+`--retina auto`（默认）在指定分辨率时开启，使用游戏分辨率时关闭；`on`／`off` 可手动固定。
+该选项不能只对游戏单进程开启，否则启动器与游戏的显示器坐标会不一致。
+切换时先写入驱动配置，等待临时设置会话正常结束，再启动官方启动器，以免沿用旧的显示器缓存。
+Wine Retina 模式按桌面坐标的两倍呈现；外接屏启用缩放时，例如 2560×1440 桌面，输出可能为
+5120×2880，而非面板原生 3840×2160。以 Metal 面板检查输出，可关闭以恢复原行为。
+
 2026-10-20 的本机环境为 M5 Pro、24 GB、macOS 27.0.1。此前已完成
 32/64 位 Windows 执行、官方 HTTPS、DXMT 设备创建、Vulkan 窗口和交换链检查。
 用户确认从官方启动器进入国服，Vulkan 窗口正常。

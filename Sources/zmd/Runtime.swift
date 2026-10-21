@@ -135,6 +135,7 @@ struct WineRuntime {
     var selected = self
     selected.inherited["ZMD_RENDERER"] = mode
     let prepared = try selected.environment()
+    try applyRetinaMode(prepared: prepared)
     try prepareNGX(prefix: prefix, mode: mode)
     print("Renderer: \(mode); game arguments: \(flags)")
     let status = try execute(
@@ -147,6 +148,23 @@ struct WineRuntime {
     let result = try execute(["C:\\EndfieldLauncher\\Launcher.exe"], prepared: prepared)
     let waited = try execute(["-w"], server: true)
     return result == 0 ? waited : result
+  }
+
+  /// Run only before starting the official launcher, after the previous session exited.
+  func applyRetinaMode(prepared: [String: String]? = nil) throws {
+    let choice = try setting("retina", "auto")
+    let resolution = try setting("resolution", "game")
+    try validateConfiguration(["--retina": choice, "--resolution": resolution])
+    let enabled = choice == "on" || (choice == "auto" && resolution != "game")
+    let saved = try? String(contentsOf: prefix.appendingPathComponent("user.reg"), encoding: .utf8)
+    guard savedRetinaMode(saved ?? "") != enabled else { return }
+    let status = try execute(["reg", "add", "HKCU\\Software\\Wine\\Mac Driver", "/v", "RetinaMode",
+                              "/t", "REG_SZ", "/d", enabled ? "y" : "n", "/f"], prepared: prepared)
+    try check(status == 0, "无法设置 Retina 输出。")
+    // reg.exe can initialize the desktop using the old setting. Let this short
+    // setup session end normally before the launcher builds a fresh display cache.
+    try check(try execute(["-w"], server: true) == 0, "无法结束 Retina 设置会话。")
+    print("Retina output: \(enabled ? "on" : "off")")
   }
 
   /// Run only before starting the official launcher, after the previous session exited.
@@ -189,6 +207,21 @@ struct WineRuntime {
     try check(imported == 0, "无法写入游戏分辨率，原值备份已保留。")
     print("Applied game resolution preferences: \(resolution)")
   }
+}
+
+/// Read the last fully stopped Wine session's driver preference, not per-app keys.
+func savedRetinaMode(_ registry: String) -> Bool {
+  var active = false
+  for raw in registry.components(separatedBy: .newlines) {
+    let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    if line.hasPrefix("[") {
+      active = line.hasPrefix("[Software\\\\Wine\\\\Mac Driver]")
+    } else if active && line.hasPrefix("\"RetinaMode\"=\"") {
+      let value = line.dropFirst("\"RetinaMode\"=\"".count).lowercased()
+      return value.hasPrefix("y") || value.hasPrefix("t") || value.hasPrefix("1")
+    }
+  }
+  return false
 }
 
 /// Build a minimal .reg patch. Never include login data, defaults or other graphics settings.

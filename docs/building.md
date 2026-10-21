@@ -111,7 +111,7 @@ CI 在 main/master 推送时构建，PR 运行快速检查。构建和发布均�
 
 ```sh
 ZMD_WORK_DIR="$PWD/.work" swift run zmd-dev sources
-swift run zmd-dev release --tag v0.6.2 --directory release --check-only
+swift run zmd-dev release --tag v0.6.3 --directory release --check-only
 ```
 
 源码包包含锁定的上游源码、补丁、许可证及 Swift 构建资料；含实验运行库时也加入对应实验源码。

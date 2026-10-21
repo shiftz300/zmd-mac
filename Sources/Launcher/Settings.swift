@@ -24,6 +24,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
     private let renderer = NSPopUpButton()
     private let windowMode = NSPopUpButton()
     private let resolution = NSComboBox()
+    private let retina = NSPopUpButton()
     private let moltenvk = NSPopUpButton()
     private let vulkanQueue = NSPopUpButton()
     private let msync = NSButton(checkboxWithTitle: "启用 MSync", target: nil, action: nil)
@@ -100,6 +101,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
                             ("DirectX 11 · DXMT", "dxmt"),
                             ("DirectX 11 · DXMT + MetalFX", "dxmt-metalfx")])
         populate(windowMode, [("窗口化启动", "windowed"), ("无边框全屏启动", "fullscreen"), ("使用游戏设置", "game")])
+        populate(retina, [("自动（指定分辨率时开启）", "auto"), ("开启", "on"), ("关闭", "off")])
+        retina.setAccessibilityLabel("Retina 输出")
+        retina.toolTip = "让 Wine 按高分辨率像素呈现窗口，需要重启整个会话。macOS 缩放可能让外接屏输出高于原生尺寸，并增加 GPU 开销；可关闭恢复原行为。"
         resolution.addItems(withObjectValues: ["使用游戏设置", "1920 × 1080", "2560 × 1440", "3840 × 2160",
                                               "1920 × 1200", "2560 × 1600", "3440 × 1440", "3840 × 1600", "5120 × 1440"])
         resolution.isEditable = true
@@ -145,6 +149,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         readScreen.toolTip = "把设置窗口移到目标屏幕后点击。读取屏幕的原生像素分辨率，不受 macOS 桌面缩放影响。"
         displayTab.view = pane([
             [label("窗口模式"), windowMode], [label("启动分辨率"), resolution],
+            [label("Retina 输出"), retina],
             [label("屏幕尺寸"), readScreen],
         ])
         let logs = NSButton(title: "打开日志", target: self, action: #selector(openLogs))
@@ -254,6 +259,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
             loaded = try configurationValues(appURL)
             select(renderer, value: loaded["--renderer"]!)
             select(windowMode, value: loaded["--window"]!)
+            select(retina, value: loaded["--retina"] ?? "auto")
             let size = loaded["--resolution"] ?? "game"
             resolution.stringValue = size == "game" ? "使用游戏设置" : size.replacingOccurrences(of: "x", with: " × ")
             select(moltenvk, value: loaded["--moltenvk"]!)
@@ -316,6 +322,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         let normalized = size.replacingOccurrences(of: "×", with: "x").lowercased().filter { !$0.isWhitespace }
         let values = ["--renderer": renderer.selectedItem?.representedObject as? String ?? "",
                       "--resolution": size == "使用游戏设置" ? "game" : normalized,
+                      "--retina": retina.selectedItem?.representedObject as? String ?? "auto",
                       "--moltenvk": moltenvk.selectedItem?.representedObject as? String ?? "",
                       "--vulkan-queue": vulkanQueue.selectedItem?.representedObject as? String ?? "",
                       "--window": windowMode.selectedItem?.representedObject as? String ?? "",

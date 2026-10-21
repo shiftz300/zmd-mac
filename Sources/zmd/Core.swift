@@ -198,6 +198,7 @@ func validateConfiguration(_ args: [String: String]) throws {
         "--dxmt-log": ["default", "error", "debug", "none"], "--wine-log": ["errors", "warnings", "off"],
         "--shader-cache": ["on", "off"], "--metal-validation": ["on", "off"],
         "--shader-validation": ["on", "off"],
+        "--retina": ["auto", "on", "off"],
     ] {
         if let value = args[key] { try check(values.contains(value), "\(key) 不支持 \(value)。") }
     }
@@ -220,7 +221,11 @@ func configure(_ app: URL, _ args: [String: String]) throws {
     let manager = FileManager.default
     try validateConfiguration(args)
     let support = try supportDirectory(app)
-    let native = (try? String(contentsOf: support.appendingPathComponent("runtime-interface"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)) == "1"
+    let runtimeInterface = try? String(contentsOf: support.appendingPathComponent("runtime-interface"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+    let native = ["1", "2"].contains(runtimeInterface ?? "")
+    if args["--retina"] != nil {
+        try check(runtimeInterface == "2", "请先更新应用以支持 Retina 输出；配置未写入。")
+    }
     let wrapper = native ? "" : try String(contentsOf: support.appendingPathComponent("scripts/wine.sh"), encoding: .utf8)
     if !native && (args["--resolution"] != nil || args["--window"] == "fullscreen") {
         let launch = try String(contentsOf: app.appendingPathComponent("Contents/MacOS/launch.sh"), encoding: .utf8)
@@ -295,6 +300,7 @@ func configure(_ app: URL, _ args: [String: String]) throws {
 let configurationFields = [
     ("--renderer", "renderer.conf", "dxmt"), ("--window", "window-mode.conf", "game"),
     ("--resolution", "resolution.conf", "game"),
+    ("--retina", "retina.conf", "auto"),
     ("--moltenvk", "moltenvk.conf", "stable"), ("--vulkan-queue", "vulkan-queue.conf", "default"),
     ("--hud", "metal-hud.conf", "off"), ("--msync", "msync.conf", "on"),
     ("--settings-window", "settings-window.conf", "on"),

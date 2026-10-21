@@ -38,6 +38,14 @@ func testCLI(_ executable: URL) throws {
   report = try inspect()
   try require(report["settings_window"] as? String == "off", "Startup preference")
   try configure(["--settings-window", "invalid", "--renderer", "vulkan"], fails: true)
+  try configure(["--retina", "on"], fails: true)
+  try write("2\n", support.at("runtime-interface"))
+  for mode in ["auto", "on", "off"] {
+    try configure(["--retina", mode])
+    try require(try inspect()["retina"] as? String == mode, "Retina readback")
+  }
+  try configure(["--retina", "invalid"], fails: true)
+  try require(try support.at("retina.conf").text == "off\n", "Invalid Retina mutated config")
   try fm.removeItem(at: support.at("metal-hud.conf"))
   try mkdir(support.at("metal-hud.conf"))
   try configure(["--renderer", "dxmt", "--msync", "on", "--hud", "off"], fails: true)

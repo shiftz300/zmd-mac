@@ -13,9 +13,26 @@
 #define FN(name) PFN_##name name = (PFN_##name)get(instance, #name); \
     if (!name) { fprintf(stderr, "Missing %s\n", #name); return 2; }
 
-int main(void)
+static unsigned display_index, wanted_display;
+static RECT fullscreen_rect;
+static BOOL CALLBACK find_display(HMONITOR monitor, HDC dc, LPRECT rect, LPARAM data)
+{
+    if (++display_index == wanted_display) fullscreen_rect = *rect;
+    return TRUE;
+}
+
+int main(int argc, char **argv)
 {
     setvbuf(stdout, NULL, _IONBF, 0);
+    SetProcessDPIAware();
+    unsigned expected_width = 0, expected_height = 0;
+    if (argc == 4) {
+        wanted_display = strtoul(argv[1], NULL, 10);
+        expected_width = strtoul(argv[2], NULL, 10);
+        expected_height = strtoul(argv[3], NULL, 10);
+        EnumDisplayMonitors(NULL, NULL, find_display, 0);
+        if (!wanted_display || fullscreen_rect.right <= fullscreen_rect.left) return 10;
+    }
     HMODULE lib = LoadLibraryA("vulkan-1.dll");
     if (!lib) { fprintf(stderr, "vulkan-1.dll: %lu\n", GetLastError()); return 3; }
     PFN_vkGetInstanceProcAddr get = (void *)GetProcAddress(lib, "vkGetInstanceProcAddr");
@@ -58,7 +75,10 @@ int main(void)
         .lpszClassName = "ZmdVulkanCheck" };
     RegisterClassA(&wc);
     HWND window = CreateWindowA(wc.lpszClassName, "Vulkan runtime check",
-        WS_OVERLAPPEDWINDOW | WS_VISIBLE, 50, 50, 480, 300, NULL, NULL, module, NULL);
+        (wanted_display ? WS_POPUP : WS_OVERLAPPEDWINDOW) | WS_VISIBLE,
+        wanted_display ? fullscreen_rect.left : 50, wanted_display ? fullscreen_rect.top : 50,
+        wanted_display ? fullscreen_rect.right - fullscreen_rect.left : 480,
+        wanted_display ? fullscreen_rect.bottom - fullscreen_rect.top : 300, NULL, NULL, module, NULL);
     if (!window) return 6;
     VkSurfaceKHR surface;
     VkWin32SurfaceCreateInfoKHR sci = { .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
@@ -97,6 +117,11 @@ int main(void)
     if (!(caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) return 9;
     VkExtent2D extent = caps.currentExtent;
     if (extent.width == UINT32_MAX) extent = (VkExtent2D){480, 300};
+    if (wanted_display && (extent.width != expected_width || extent.height != expected_height)) {
+        fprintf(stderr, "FAIL: fullscreen surface %ux%u; expected %ux%u\n",
+                extent.width, extent.height, expected_width, expected_height);
+        return 11;
+    }
     VkSwapchainCreateInfoKHR swapinfo = { .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .surface = surface, .minImageCount = caps.minImageCount,
         .imageFormat = format.format, .imageColorSpace = format.colorSpace,
@@ -109,6 +134,7 @@ int main(void)
     CHECK(vkGetSwapchainImagesKHR(device, swapchain, &count, NULL));
     VkImage *images = calloc(count, sizeof(*images));
     CHECK(vkGetSwapchainImagesKHR(device, swapchain, &count, images));
+    printf("Swapchain created: %ux%u, %u images\n", extent.width, extent.height, count);
     VkCommandPoolCreateInfo pci = { .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .queueFamilyIndex = family };
     VkCommandPool pool;

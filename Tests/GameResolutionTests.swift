@@ -30,6 +30,10 @@ import Foundation
       } catch is ZMDError {}
     }
     print("PASS: CN/Global resolution values, unrelated/default/subkey preservation, minimal backup and incomplete schema")
+    try check(!savedRetinaMode(""), "Absent Retina preference must be off")
+    try check(savedRetinaMode("[Software\\\\Wine\\\\Mac Driver] 123\n\"RetinaMode\"=\"y\"\n"), "Retina preference")
+    try check(!savedRetinaMode("[Software\\\\Wine\\\\AppDefaults\\\\game.exe\\\\Mac Driver]\n\"RetinaMode\"=\"y\"\n"),
+              "Retina must be prefix-wide, not per-app")
     guard CommandLine.arguments.count > 1 else { return }
     let fm = FileManager.default
     var template = Array("/tmp/zmd-res-XXXXXX".utf8CString)
@@ -51,6 +55,18 @@ import Foundation
     }
     try writeText("3024x1964", root.appendingPathComponent("resolution.conf"))
     try runtime.applyGameResolution() // Fresh prefix has no game settings.
+    // Exercise the production Retina transition, including the graceful setup-session wait.
+    for (choice, resolution, expected) in [("auto", "3024x1964", true), ("auto", "game", false),
+                                          ("on", "game", true), ("off", "3024x1964", false)] {
+      try writeText(choice, root.appendingPathComponent("retina.conf"))
+      try writeText(resolution, root.appendingPathComponent("resolution.conf"))
+      try runtime.applyRetinaMode()
+      let saved = try String(contentsOf: root.appendingPathComponent("prefix/user.reg"), encoding: .utf8)
+      try check(savedRetinaMode(saved) == expected, "Retina transition did not flush before launch")
+      try runtime.applyRetinaMode() // Already configured: must remain a no-op.
+    }
+    print("PASS: real Wine Retina auto/on/off transitions and graceful session drain")
+    try writeText("3024x1964", root.appendingPathComponent("resolution.conf"))
     for (region, company) in [("cn", "Hypergryph"), ("global", "Gryphline")] {
       try writeText(region, root.appendingPathComponent("region.conf"))
       let key = "HKEY_CURRENT_USER\\Software\\\(company)\\Endfield"

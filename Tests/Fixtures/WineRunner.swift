@@ -10,6 +10,10 @@ import Foundation
         try runtime.applyGameResolution()
         return
       }
+      if args[1] == "--apply-retina" {
+        try runtime.applyRetinaMode()
+        return
+      }
       exit(try runtime.execute(Array(args.dropFirst())))
     } catch {
       FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8))
