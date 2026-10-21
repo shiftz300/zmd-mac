@@ -65,7 +65,10 @@ func check(_ scenario: String) throws {
                  "foreign-ready", "foreign-request", "foreign-ended"] {
         try? manager.removeItem(at: file(name))
     }
-    try (scenario == "restart-refuse" ? "refuse" : scenario).write(to: file("scenario"), atomically: true, encoding: .utf8)
+    let cache = file("prefix/drive_c/users/test/AppData/LocalLow/Hypergryph/Endfield/vulkan_pso_cache.bin")
+    try manager.createDirectory(at: cache.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try Data("cache".utf8).write(to: cache)
+    try (scenario.hasSuffix("-refuse") ? "refuse" : scenario).write(to: file("scenario"), atomically: true, encoding: .utf8)
     let foreign = try start(client, ["Endfield.exe", "--support", support.path, "--kind", "foreign"], prefix: file("other-prefix"))
     let game = try start(client, ["Endfield.exe", "--support", support.path, "--kind", "game"], prefix: file("prefix"))
     let launcher = try start(client, ["Games.exe", "--support", support.path, "--kind", "launcher"], prefix: file("prefix"))
@@ -81,9 +84,9 @@ func check(_ scenario: String) throws {
         guard wait(5, until: { game.isTerminated }) else { throw TestFailure("Fixture game did not exit.") }
         _ = launcher.terminate()
     } else {
-        if scenario.hasPrefix("restart") {
+        if scenario.hasPrefix("restart") || scenario.hasPrefix("cache") {
             DistributedNotificationCenter.default().postNotificationName(
-                NSNotification.Name("local.zmdmac.TestRestart"), object: bundle.path,
+                NSNotification.Name(scenario.hasPrefix("cache") ? "local.zmdmac.TestClearCache" : "local.zmdmac.TestRestart"), object: bundle.path,
                 userInfo: nil, deliverImmediately: true)
         } else {
             guard wrapper.terminate() else { throw TestFailure("Wrapper rejected the quit event.") }
@@ -91,7 +94,7 @@ func check(_ scenario: String) throws {
         guard wait(8, until: { manager.fileExists(atPath: file("game-request").path) }) else {
             throw TestFailure("Native quit did not reach the game fixture.")
         }
-        if scenario == "refuse" || scenario == "restart-refuse" {
+        if scenario == "refuse" || scenario.hasSuffix("-refuse") {
             // Cross the production deadline: no timer may force or show a dialog.
             _ = wait(16, until: { false })
             guard !game.isTerminated && !launcher.isTerminated && !wrapper.isTerminated,
@@ -99,7 +102,8 @@ func check(_ scenario: String) throws {
                 throw TestFailure("Refusal did not preserve the session.")
             }
             try "quit".write(to: file("scenario"), atomically: true, encoding: .utf8)
-            if scenario == "restart-refuse" {
+            guard manager.fileExists(atPath: cache.path) else { throw TestFailure("Cache removed while game refused exit.") }
+            if scenario.hasSuffix("-refuse") {
                 _ = game.terminate()
                 guard wait(5, until: { game.isTerminated }) else { throw TestFailure("Fixture game did not exit.") }
                 _ = launcher.terminate()
@@ -108,10 +112,13 @@ func check(_ scenario: String) throws {
             }
         }
     }
-    if scenario == "restart" {
+    if scenario == "restart" || scenario == "cache" {
         guard wait(10, until: { manager.fileExists(atPath: file("restarted").path) }),
               game.isTerminated, launcher.isTerminated, !wrapper.isTerminated else {
             throw TestFailure("Restart did not wait for the old session to finish.")
+        }
+        if scenario == "cache" && manager.fileExists(atPath: cache.path) {
+            throw TestFailure("Cache was not cleared before restart.")
         }
         try Data().write(to: file("session-ended"))
     }
@@ -124,13 +131,16 @@ func check(_ scenario: String) throws {
     guard !foreign.isTerminated && !manager.fileExists(atPath: file("foreign-request").path) else {
         throw TestFailure("Quit escaped to another Wine prefix sharing the runtime.")
     }
-    if scenario == "restart-refuse" && manager.fileExists(atPath: file("restarted").path) {
+    if scenario.hasSuffix("-refuse") && manager.fileExists(atPath: file("restarted").path) {
         throw TestFailure("A cancelled restart was unexpectedly resumed.")
+    }
+    if scenario != "cache" && !manager.fileExists(atPath: cache.path) {
+        throw TestFailure("Cache removed without a completed clear request.")
     }
     print("\(scenario): PASS (native quit, game before launcher, other prefix preserved)")
 }
 do {
-    for scenario in ["quit", "slow", "refuse", "natural-exit", "restart", "restart-refuse"] { try check(scenario) }
+    for scenario in ["quit", "slow", "refuse", "natural-exit", "restart", "restart-refuse", "cache", "cache-refuse"] { try check(scenario) }
 } catch {
     fputs("FAIL: \(error)\n", stderr)
     exit(1)

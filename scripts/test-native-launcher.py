@@ -51,7 +51,7 @@ done
         "CFBundlePackageType": "APPL", "CFBundleName": "ZMD session fixture", "LSUIElement": True,
     }))
     try:
-        subprocess.run([str(build / "check"), str(app)], check=True, timeout=150)
+        subprocess.run([str(build / "check"), str(app)], check=True, timeout=180)
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
         saved = build / ("failure-" + Path(temporary).name)
         shutil.copytree(support, saved)

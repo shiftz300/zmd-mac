@@ -84,6 +84,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
     private var launcherSeen = false
     private var terminalStatus: LauncherStatus?
     private var restartPending = false
+    private var cacheClearPending = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if CommandLine.arguments.contains("--attach") {
@@ -113,6 +114,9 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         DistributedNotificationCenter.default().addObserver(
             self, selector: #selector(requestRestart), name: NSNotification.Name("local.zmdmac.TestRestart"),
             object: Bundle.main.bundleURL.path, suspensionBehavior: .deliverImmediately)
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(requestCacheClear), name: NSNotification.Name("local.zmdmac.TestClearCache"),
+            object: Bundle.main.bundleURL.path, suspensionBehavior: .deliverImmediately)
         #endif
         startSession(attach: CommandLine.arguments.contains("--attach"))
     }
@@ -121,6 +125,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         finished = false
         quitting = false
         restartPending = false
+        cacheClearPending = false
         launcherSeen = false
         terminalStatus = nil
         requested.removeAll()
@@ -174,6 +179,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         if settings == nil {
             settings = SettingsWindowController(appURL: Bundle.main.bundleURL)
             settings?.restartRequested = { [weak self] in self?.requestRestart() }
+            settings?.clearCacheRequested = { [weak self] in self?.requestCacheClear() }
         }
         refreshLauncherStatus()
         settings?.present()
@@ -183,6 +189,13 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         guard !quitting && !finished else { return }
         restartPending = true
         beginQuit()
+    }
+
+    @objc private func requestCacheClear() {
+        guard !quitting && !finished else { return }
+        cacheClearPending = true
+        settings?.showCacheResult("正在退出会话，随后清除缓存…")
+        requestRestart()
     }
 
     private func refreshLauncherStatus() {
@@ -236,6 +249,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
               }) else { return }
         record("Dock quit received: pid=\(pid)")
         restartPending = false
+        cacheClearPending = false
         beginQuit()
     }
 
@@ -246,7 +260,24 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         if restartPending {
             // launch.sh waits for this prefix's Wine server, so the previous
             // game and launcher are gone before starting a new official session.
+            var result: String?
+            var failed = false
+            if cacheClearPending {
+                cacheClearPending = false
+                do {
+                    try check(status == 0, "会话异常结束，缓存已保留。")
+                    let count = try clearVulkanCache(Bundle.main.bundleURL)
+                    result = count == 0 ? "没有找到 Vulkan 缓存。" : "已清除 Vulkan 缓存，下次进入游戏会重新生成。"
+                } catch {
+                    result = "缓存清理失败：\(error.localizedDescription)"
+                    failed = true
+                }
+            }
             startSession()
+            if let result {
+                showSettings()
+                settings?.showCacheResult(result, failed: failed)
+            }
             return
         }
         terminalStatus = status != 0 && !quitting ? .failed : .stopped
@@ -259,6 +290,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         restartPending = false
+        cacheClearPending = false
         if finished || launcher?.isRunning != true { return .terminateNow }
         beginQuit()
         // The hidden coordinator remains alive until its child session exits.
@@ -322,6 +354,8 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         quitTimer?.invalidate()
         quitting = false
         restartPending = false
+        if cacheClearPending { settings?.showCacheResult("退出未完成，已取消缓存清理。", failed: true) }
+        cacheClearPending = false
         refreshLauncherStatus()
         requested.removeAll()
         record(message)

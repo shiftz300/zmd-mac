@@ -41,6 +41,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private var loaded: [String: String] = [:]
     var didClose: (() -> Void)?
     var restartRequested: (() -> Void)?
+    var clearCacheRequested: (() -> Void)?
 
     init(appURL: URL) {
         self.appURL = appURL
@@ -128,14 +129,20 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             [label("队列提交"), vulkanQueue], [label("窗口模式"), windowMode],
             [label("同步"), msync], [label("性能监测"), hud],
         ])
-        let logs = NSButton(title: "打开日志文件夹", target: self, action: #selector(openLogs))
+        let logs = NSButton(title: "打开日志", target: self, action: #selector(openLogs))
         logs.bezelStyle = .rounded
+        let clearCache = NSButton(title: "清除 Vulkan 缓存…", target: self, action: #selector(confirmClearCache))
+        clearCache.bezelStyle = .rounded
+        clearCache.toolTip = "正常退出当前会话后清除游戏的 Vulkan 管线缓存，再打开启动器。"
+        let tools = NSStackView(views: [logs, clearCache])
+        tools.orientation = .horizontal
+        tools.spacing = 8
         let debugTab = NSTabViewItem(identifier: "debug")
         debugTab.label = "调试"
         debugTab.view = pane([
             [label("DXMT 日志"), dxmtLog], [label("Wine 日志"), wineLog],
             [label("着色器缓存"), shaderCache], [label("校验"), metalValidation],
-            [NSGridCell.emptyContentView, shaderValidation], [label("日志文件"), logs],
+            [NSGridCell.emptyContentView, shaderValidation], [label("工具"), tools],
         ])
         tabs.addTabViewItem(runtimeTab)
         tabs.addTabViewItem(debugTab)
@@ -303,6 +310,23 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private func showFailure(_ error: Error) {
         message.textColor = .systemRed
         message.stringValue = error.localizedDescription
+    }
+
+    func showCacheResult(_ text: String, failed: Bool = false) {
+        message.textColor = failed ? .systemRed : .secondaryLabelColor
+        message.stringValue = text
+    }
+
+    @objc private func confirmClearCache() {
+        guard let window, clearCacheRequested != nil else { return }
+        let alert = NSAlert()
+        alert.messageText = "清除 Vulkan 缓存？"
+        alert.informativeText = "将正常退出游戏和启动器，清除缓存后重开启动器。游戏文件和设置会保留，下次进入游戏可能因重新编译着色器而暂时卡顿。未保存的运行设置不会应用。"
+        alert.addButton(withTitle: "清除并重开")
+        alert.addButton(withTitle: "取消")
+        alert.beginSheetModal(for: window) { [weak self] response in
+            if response == .alertFirstButtonReturn { self?.clearCacheRequested?() }
+        }
     }
 
     @objc private func openLogs() {

@@ -59,3 +59,33 @@ try verifyPayload(root)
 let literal = "path with spaces; $(echo no) `echo no`"
 try check(try run("/usr/bin/printf", ["%s", literal], capture: true) == literal, "Argument escaping")
 print("PASS: payload hashes, internal links and literal process arguments")
+
+let cacheApp = root.appendingPathComponent("Cache Test.app")
+let profiles = cacheApp.appendingPathComponent("Contents/SharedSupport/prefix/drive_c/users")
+let cnCache = profiles.appendingPathComponent("user/AppData/LocalLow/Hypergryph/Endfield/vulkan_pso_cache.bin")
+let globalCache = profiles.appendingPathComponent("user/AppData/LocalLow/Gryphline/Endfield/vulkan_pso_cache.bin")
+for cache in [cnCache, globalCache] {
+    try FileManager.default.createDirectory(at: cache.deletingLastPathComponent(), withIntermediateDirectories: true)
+    try Data("cache".utf8).write(to: cache)
+}
+let prefs = cnCache.deletingLastPathComponent().appendingPathComponent("settings.json")
+try Data("keep".utf8).write(to: prefs)
+try check(try clearVulkanCache(cacheApp) == 2, "clear both known cache paths")
+try check(try Data(contentsOf: prefs) == Data("keep".utf8), "preserve adjacent settings")
+try check(try clearVulkanCache(cacheApp) == 0, "missing cache is harmless")
+let outsideCache = root.appendingPathComponent("outside-cache")
+try Data("keep".utf8).write(to: outsideCache)
+try FileManager.default.createSymbolicLink(at: cnCache, withDestinationURL: outsideCache)
+try rejects("cache file symlink") { _ = try clearVulkanCache(cacheApp) }
+try FileManager.default.removeItem(at: cnCache)
+try FileManager.default.createDirectory(at: cnCache, withIntermediateDirectories: true)
+try rejects("cache path is directory") { _ = try clearVulkanCache(cacheApp) }
+try FileManager.default.removeItem(at: cnCache)
+let externalProfile = root.appendingPathComponent("external-profile")
+let externalPipeline = externalProfile.appendingPathComponent("AppData/LocalLow/Hypergryph/Endfield/vulkan_pso_cache.bin")
+try FileManager.default.createDirectory(at: externalPipeline.deletingLastPathComponent(), withIntermediateDirectories: true)
+try Data("keep".utf8).write(to: externalPipeline)
+try FileManager.default.createSymbolicLink(at: profiles.appendingPathComponent("linked-user"), withDestinationURL: externalProfile)
+try rejects("profile symlink escapes prefix") { _ = try clearVulkanCache(cacheApp) }
+try check(try Data(contentsOf: externalPipeline) == Data("keep".utf8), "preserve outside cache")
+print("PASS: scoped Vulkan cache clearing, absent files and external path protection")

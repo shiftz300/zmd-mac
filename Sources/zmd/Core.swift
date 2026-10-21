@@ -25,6 +25,40 @@ struct ZMDError: LocalizedError {
     var errorDescription: String? { message }
 }
 
+/// Call only after the owning Wine session has fully exited.
+/// Clear the game's known Vulkan cache, never whole AppData or driver caches.
+func clearVulkanCache(_ app: URL) throws -> Int {
+    let manager = FileManager.default
+    let root = app.resolvingSymlinksInPath()
+    let prefix = root.appendingPathComponent("Contents/SharedSupport/prefix")
+    let users = prefix.appendingPathComponent("drive_c/users")
+    try check(users.resolvingSymlinksInPath().path.hasPrefix(prefix.path + "/"),
+              "缓存目录指向应用外部，未清理。")
+    guard manager.fileExists(atPath: users.path) else { return 0 }
+    let profiles = try manager.contentsOfDirectory(at: users, includingPropertiesForKeys: nil)
+    var caches: [URL] = []
+    for profile in profiles {
+        for vendor in ["Hypergryph", "Gryphline"] {
+            let cache = profile.appendingPathComponent("AppData/LocalLow/\(vendor)/Endfield/vulkan_pso_cache.bin")
+            // Ignore absent files, but reject links/directories instead of following them.
+            let attributes: [FileAttributeKey: Any]
+            do { attributes = try manager.attributesOfItem(atPath: cache.path) }
+            catch let error as NSError {
+                if error.domain == NSCocoaErrorDomain &&
+                   [NSFileNoSuchFileError, NSFileReadNoSuchFileError].contains(error.code) { continue }
+                throw error
+            }
+            try check(attributes[.type] as? FileAttributeType == .typeRegular &&
+                      cache.resolvingSymlinksInPath().path.hasPrefix(prefix.path + "/"),
+                      "缓存路径异常，未清理。")
+            caches.append(cache)
+        }
+    }
+    // Validate every candidate before removing any file.
+    for cache in caches { try manager.removeItem(at: cache) }
+    return caches.count
+}
+
 func check(_ condition: Bool, _ message: String) throws {
     if !condition { throw ZMDError(message) }
 }
