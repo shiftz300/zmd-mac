@@ -194,6 +194,9 @@ func testQuick() throws {
   try compile(["Tests/Fixtures/RuntimeProbe.swift"], build.at("probe"))
   try compile(coreSources + ["Tests/RuntimeTests.swift"], build.at("runtime-tests"))
   try command([build.at("runtime-tests").path, build.at("probe").path])
+  try compile(["Sources/zmd/Core.swift", "Sources/Launcher/DisplayResolution.swift",
+               "Tests/DisplayResolutionTests.swift"], build.at("display-resolution-tests"))
+  try command([build.at("display-resolution-tests").path])
   try compile(launcherSources, build.at("Endfield"))
   try testPatches()
   try testRelease()

@@ -6,7 +6,7 @@ let project = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
   .deletingLastPathComponent().deletingLastPathComponent()
 let env = ProcessInfo.processInfo.environment
 let work = URL(fileURLWithPath: env["ZMD_WORK_DIR"] ?? project.path).standardizedFileURL
-let version = "0.6.0"
+let version = "0.6.1"
 struct Failure: LocalizedError {
   let message: String
   init(_ message: String) { self.message = message }
@@ -184,7 +184,8 @@ func compile(_ sources: [String], _ output: URL, defines: [String] = []) throws 
 }
 let coreSources = ["Sources/zmd/Core.swift", "Sources/zmd/Runtime.swift"]
 let launcherSources =
-  coreSources + ["Sources/Launcher/Launcher.swift", "Sources/Launcher/Settings.swift"]
+  coreSources + ["Sources/Launcher/Launcher.swift", "Sources/Launcher/Settings.swift",
+                 "Sources/Launcher/DisplayResolution.swift"]
 func checksumFile(_ file: URL) throws {
   try write(
     try digest(file) + "  " + file.lastPathComponent + "\n", file.appendingPathExtension("sha256"))

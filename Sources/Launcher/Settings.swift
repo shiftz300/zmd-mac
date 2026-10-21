@@ -142,7 +142,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         displayTab.label = "显示"
         let readScreen = NSButton(title: "读取当前屏幕", target: self, action: #selector(readCurrentScreen))
         readScreen.bezelStyle = .rounded
-        readScreen.toolTip = "把设置窗口移到目标屏幕后点击。读取当前缩放下的桌面尺寸，不移动游戏窗口；更高输出分辨率可手动选择。"
+        readScreen.toolTip = "把设置窗口移到目标屏幕后点击。读取屏幕的原生像素分辨率，不受 macOS 桌面缩放影响。"
         displayTab.view = pane([
             [label("窗口模式"), windowMode], [label("启动分辨率"), resolution],
             [label("屏幕尺寸"), readScreen],
@@ -283,11 +283,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
 
     @objc private func readCurrentScreen() {
         guard let screen = window?.screen else { showFailure(ZMDError("无法读取当前屏幕。")); return }
-        // Wine uses desktop coordinates with this runtime's default RetinaMode off.
-        let size = screen.frame.size
-        resolution.stringValue = "\(Int(size.width.rounded())) × \(Int(size.height.rounded()))"
-        controlChanged()
-        message.stringValue = "已读取\(screen.localizedName)，尚未保存。"
+        do {
+            let size = try DisplayResolution.read(screen)
+            resolution.stringValue = "\(size.width) × \(size.height)"
+            controlChanged()
+            message.stringValue = "已读取\(screen.localizedName)的原生分辨率，尚未保存。"
+        } catch { showFailure(error) }
     }
 
     private func updateVulkanControls() {
