@@ -9,7 +9,7 @@
 从 [Releases](https://github.com/shiftz300/zmd-mac/releases/latest) 下载：
 
 - **PKG**：双击安装，在「安装类型 → 自定」选择国服或 Global，也可同时安装。
-- **ZIP**：解压后双击 `安装终末地.command`，下载官方启动器或选择本地安装 EXE。
+- **ZIP**：解压后双击 `安装终末地.command`，或在终端运行 `./zmd setup`。可下载官方启动器或选择本地安装 EXE。
 
 安装完成后，打开 `~/Applications/鹰角启动器.app`（国服）或 `~/Applications/GRYPHLINK.app`（Global），下载并启动游戏。
 两服的游戏目录和登录状态独立，已有同名应用不会被覆盖。
@@ -67,14 +67,14 @@ MoltenVK 实验版需[单独构建](docs/building.md#可选-moltenvk-实验版)�
 
 ## 开发与发布
 
-开发需要 Apple Silicon、macOS 27、Rosetta 2、Command Line Tools、Python 3 和 Git。
+开发需要 Apple Silicon、macOS 27、Rosetta 2、Command Line Tools 和 Git，不需要 Python。
 
 ```sh
-bash scripts/test.sh
-bash scripts/build-release.sh
+swift run zmd-dev test
+ZMD_WORK_DIR="$PWD/.work" swift run zmd-dev build
 ```
 
-产物输出到 `release/`。详细步骤见[构建说明](docs/building.md)。
+安装、启动、构建和测试使用 Swift；PKG 钩子和 ZIP 双击入口保留简短 Shell。产物输出到 `release/`。详细步骤见[构建说明](docs/building.md)。
 
 CI 在分支推送时构建，PR 执行快速检查。推送与应用版本一致的 `vX.Y.Z` 标签会自动发布 Release；带 `-rc.1` 等后缀的标签发布为预发布版。
 Release 提供 PKG、CLI ZIP 和第三方源码包。项目源码使用 GitHub 自带下载，SHA-256 在发布前校验，不另上传校验文件。

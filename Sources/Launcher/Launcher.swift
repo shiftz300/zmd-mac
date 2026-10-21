@@ -138,10 +138,10 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
                 throw CocoaError(.fileWriteUnknown)
             }
             log = try FileHandle(forWritingTo: file)
-            var arguments = [contents.appendingPathComponent("MacOS/launch.sh").path]
+            var arguments = ["--session"]
             if attach { arguments.append("--attach") }
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/bin/bash")
+            process.executableURL = Bundle.main.executableURL
             process.arguments = arguments
             process.currentDirectoryURL = support
             process.standardOutput = log ?? FileHandle.nullDevice
@@ -258,7 +258,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         quitTimer?.invalidate()
         statusTimer?.invalidate()
         if restartPending {
-            // launch.sh waits for this prefix's Wine server, so the previous
+            // The native session worker waits for this prefix's Wine server, so the previous
             // game and launcher are gone before starting a new official session.
             var result: String?
             var failed = false
@@ -374,6 +374,18 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
 @main
 enum EndfieldMain {
     static func main() {
+        if CommandLine.arguments.dropFirst().first == "--session" {
+            do {
+                #if LIFECYCLE_TEST
+                if try fixtureSession() { return }
+                #endif
+                let support = Bundle.main.bundleURL.appendingPathComponent("Contents/SharedSupport")
+                exit(try WineRuntime(support: support).session(attach: CommandLine.arguments.contains("--attach")))
+            } catch {
+                FileHandle.standardError.write(Data((error.localizedDescription + "\n").utf8))
+                exit(2)
+            }
+        }
         let application = NSApplication.shared
         let delegate = EndfieldApplication()
         application.setActivationPolicy(.accessory)

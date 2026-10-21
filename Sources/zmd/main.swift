@@ -218,7 +218,7 @@ func install(_ args: [String: String]) throws {
     environment["ZMD_PREFIX"] = prefix.path
     environment["WINEPREFIX"] = prefix.path
     environment["ZMD_RENDERER"] = args["--renderer"] ?? "vulkan"
-    let wine = support.appendingPathComponent("scripts/wine.sh").path
+    let wine = WineRuntime(support: support, inherited: environment)
     let server = support.appendingPathComponent("runtime/wine/bin/wineserver").path
     // The prefix is newly created and never contains a user's existing game.
     var prefixStarted = false
@@ -230,9 +230,8 @@ func install(_ args: [String: String]) throws {
         }
     }
     prefixStarted = true
-    try run("/bin/bash", [wine, "wineboot", "-u"], environment: environment, log: log)
-    try run("/bin/bash", [wine, "regedit", "/S", support.appendingPathComponent("scripts/prefix-settings.reg").path],
-            environment: environment, log: log)
+    try check(try wine.execute(["wineboot", "-u"], log: log) == 0, "Wine 初始化失败")
+    try check(try wine.execute(["regedit", "/S", support.appendingPathComponent("prefix-settings.reg").path], log: log) == 0, "Wine 注册表初始化失败")
     print("[4/5] 安装官方启动器并包装 macOS 应用")
     let destination = prefix.appendingPathComponent("drive_c/EndfieldLauncher")
     try manager.copyItem(at: extracted, to: destination)
@@ -256,7 +255,7 @@ func install(_ args: [String: String]) throws {
     try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0).write(to: plistURL)
     // No game or launcher has been executed. Stop only Wine's setup services
     // before moving the fresh prefix; never move a prefix while its server lives.
-    try run("/bin/bash", [wine, "wineboot", "--end-session", "--shutdown"], environment: environment, log: log)
+    try check(try wine.execute(["wineboot", "--end-session", "--shutdown"], log: log) == 0, "Wine 结束安装失败")
     try run(server, ["-k"], environment: environment, log: log)
     try run(server, ["-w"], environment: environment, log: log)
     prefixStarted = false

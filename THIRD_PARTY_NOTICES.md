@@ -29,11 +29,11 @@ debugging modifications to those libraries.
 ## Source locations and build records
 
 - Wine: https://media.codeweavers.com/pub/crossover/source/crossover-sources-26.3.0.tar.gz
-- Local Wine desktop patch: `scripts/patches/wine-session-dock.patch`, applied after FineWine by `scripts/prepare-session-patch.py`; modifications to LGPL-2.1-or-later Wine files retain that license.
+- Local Wine desktop patch: `Patches/wine-session-dock.patch`, applied after FineWine by `swift run zmd-dev wine`; modifications to LGPL-2.1-or-later Wine files retain that license.
 - FineWine patch tree: https://github.com/Lunarchy107/Endfield_FineWine/tree/a62d906c18e790acad3603ea639a3baba4e201ad
 - DXMT 0.80: https://github.com/3Shain/dxmt/tree/v0.80
-- DXMT NGX backport: https://github.com/3Shain/dxmt/pull/235 ; exact patch in `scripts/patches/`, rebuild script `scripts/build-dxmt-metalfx.py`, installed module hash in `renderers/dxmt-metalfx/provenance.json`.
-- Local NVAPI fix: `scripts/patches/dxmt-nvapi-logical-gpu.patch` (MIT), separate from upstream #235. Header source: https://github.com/NVIDIA/nvapi/tree/d08488fcc82eef313b0464db37d2955709691e94 .
+- DXMT NGX backport: https://github.com/3Shain/dxmt/pull/235 ; exact patch in `Patches/`, rebuild command `swift run zmd-dev metalfx`, installed module hash in `renderers/dxmt-metalfx/provenance.json`.
+- Local NVAPI fix: `Patches/dxmt-nvapi-logical-gpu.patch` (MIT), separate from upstream #235. Header source: https://github.com/NVIDIA/nvapi/tree/d08488fcc82eef313b0464db37d2955709691e94 .
 - MoltenVK source and patch commits: see bundled `runtime/renderers/moltenvk/SOURCE.txt` and `provenance.json`.
 - MacPorts package URLs, versions, SHA-256 values: `macports.lock.json`.
 - Build tool and 7-Zip bottle URLs, versions, SHA-256 values: `dependencies.lock.json`.

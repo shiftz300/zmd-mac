@@ -21,20 +21,20 @@ jobs:
           sw_vers
           xcrun swiftc --version
           arch -x86_64 /usr/bin/true
-          python3 --version
+          swift --version
       - name: Test installer
-        run: bash scripts/test.sh
+        run: swift run zmd-dev test
       - uses: actions/cache@v4
         with:
           path: .work/downloads
-          key: downloads-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('*lock.json', 'scripts/fetch-sources.py', 'scripts/install-moltenvk.py') }}
+          key: downloads-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('*lock.json', 'Sources/Development/Build.swift', 'Sources/Development/Renderers.swift') }}
       - name: Build standalone installer
-        run: bash scripts/build-release.sh
+        run: ZMD_WORK_DIR="$PWD/.work" swift run zmd-dev build
       - name: Verify package
         run: |
           release/zmd-mac/zmd doctor
           release/zmd-mac/zmd verify
-          python3 scripts/test-pkg.py release/zmd-mac-macos-arm64.pkg
+          swift run zmd-dev test-pkg --package release/zmd-mac-macos-arm64.pkg
       - uses: actions/upload-artifact@v4
         with:
           name: zmd-mac-macos-arm64
@@ -47,7 +47,7 @@ jobs:
           if-no-files-found: error
       - name: Retain Wine source and build records
         run: |
-          ZMD_WORK_DIR="$PWD/.work" python3 scripts/package-sources.py
+          ZMD_WORK_DIR="$PWD/.work" swift run zmd-dev sources
       - uses: actions/upload-artifact@v4
         with:
           name: third-party-source-inputs
@@ -60,7 +60,7 @@ jobs:
     name: Publish GitHub Release
     needs: build
     if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
-    runs-on: ubuntu-latest
+    runs-on: xcode-27
     timeout-minutes: 15
     permissions:
       contents: write
@@ -78,4 +78,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: python3 scripts/publish-release.py --tag "$RELEASE_TAG" --directory release
+        run: swift run zmd-dev release --tag "$RELEASE_TAG" --directory release

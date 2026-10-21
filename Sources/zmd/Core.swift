@@ -211,7 +211,8 @@ func supportDirectory(_ app: URL) throws -> URL {
     try check((metadata?["CFBundleIdentifier"] as? String)?.hasPrefix("local.zmdmac.endfield") == true,
               "这不是 zmd-mac 创建的应用。")
     let support = contents.appendingPathComponent("SharedSupport")
-    try check(manager.fileExists(atPath: support.appendingPathComponent("scripts/wine.sh").path), "应用结构不完整。")
+    try check(manager.fileExists(atPath: contents.appendingPathComponent("MacOS/Endfield").path) ||
+              manager.fileExists(atPath: support.appendingPathComponent("scripts/wine.sh").path), "应用结构不完整。")
     return support
 }
 
@@ -219,8 +220,9 @@ func configure(_ app: URL, _ args: [String: String]) throws {
     let manager = FileManager.default
     try validateConfiguration(args)
     let support = try supportDirectory(app)
-    let wrapper = try String(contentsOf: support.appendingPathComponent("scripts/wine.sh"), encoding: .utf8)
-    if args["--resolution"] != nil || args["--window"] == "fullscreen" {
+    let native = (try? String(contentsOf: support.appendingPathComponent("runtime-interface"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)) == "1"
+    let wrapper = native ? "" : try String(contentsOf: support.appendingPathComponent("scripts/wine.sh"), encoding: .utf8)
+    if !native && (args["--resolution"] != nil || args["--window"] == "fullscreen") {
         let launch = try String(contentsOf: app.appendingPathComponent("Contents/MacOS/launch.sh"), encoding: .utf8)
         try check(launch.contains("resolution.conf") && launch.contains("-window-mode borderless"),
                   "请先更新应用包装层以支持显示设置；配置未写入。")
@@ -231,7 +233,7 @@ func configure(_ app: URL, _ args: [String: String]) throws {
                              "--shader-cache": "shader-cache.conf", "--metal-validation": "metal-validation.conf",
                              "--shader-validation": "shader-validation.conf"] {
         if args[option] != nil {
-            try check(wrapper.contains(marker), "此应用的旧包装层不支持 \(option)，请先更新包装层；配置未写入。")
+            try check(native || wrapper.contains(marker), "此应用的旧包装层不支持 \(option)，请先更新包装层；配置未写入。")
         }
     }
     if args["--renderer"] == "vulkan" {
@@ -241,7 +243,7 @@ func configure(_ app: URL, _ args: [String: String]) throws {
         let selected = try args["--moltenvk"] ?? configurationValues(app)["--moltenvk"]!
         try check(["stable", "experimental"].contains(selected), "未知 MoltenVK 配置。")
         if selected == "experimental" {
-            try check(wrapper.contains("moltenvk-experimental"), "请先更新应用包装层。")
+            try check(native || wrapper.contains("moltenvk-experimental"), "请先更新应用包装层。")
             for file in ["libMoltenVK.dylib", "provenance.json"] {
                 try check(manager.fileExists(atPath: support.appendingPathComponent("runtime/renderers/moltenvk-experimental/" + file).path),
                           "此应用未安装实验版 MoltenVK；配置未写入。")
@@ -249,10 +251,10 @@ func configure(_ app: URL, _ args: [String: String]) throws {
         }
     }
     if args["--renderer"] == "dxmt-metalfx" {
-        let launch = try String(contentsOf: app.appendingPathComponent("Contents/MacOS/launch.sh"), encoding: .utf8)
-        try check(wrapper.contains("nvngx=b;sl.dlss_g,sl.dlss_d,sl.deepdvc=d") &&
+        let launch = native ? "" : try String(contentsOf: app.appendingPathComponent("Contents/MacOS/launch.sh"), encoding: .utf8)
+        try check(native || (wrapper.contains("nvngx=b;sl.dlss_g,sl.dlss_d,sl.deepdvc=d") &&
                   launch.contains("prepare-metalfx.sh") &&
-                  manager.fileExists(atPath: support.appendingPathComponent("scripts/prepare-metalfx.sh").path),
+                  manager.fileExists(atPath: support.appendingPathComponent("scripts/prepare-metalfx.sh").path)),
                   "此应用的旧包装层不支持 MetalFX；配置未写入。")
         for file in ["provenance.json", "x86_64-windows/nvngx.dll", "x86_64-windows/nvapi64.dll"] {
             try check(manager.fileExists(atPath: support.appendingPathComponent("runtime/renderers/dxmt-metalfx/" + file).path),

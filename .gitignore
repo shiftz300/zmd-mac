@@ -13,3 +13,5 @@ release/
 .env
 .env.*
 *.log
+.build/
+.swiftpm/
