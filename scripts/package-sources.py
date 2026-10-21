@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Retain pinned source inputs alongside a redistributable runtime artifact."""
 import json
+import os
 import tarfile
 from pathlib import Path
 from bootstrap import ROOT, PROJECT, download, digest
@@ -25,7 +26,17 @@ inputs.extend([
     (PROJECT / "scripts", "build-scripts"),
     (PROJECT / "dependencies.lock.json", "dependencies.lock.json"),
     (PROJECT / "macports.lock.json", "macports.lock.json"),
+    (PROJECT / "moltenvk-experimental.lock.json", "moltenvk-experimental.lock.json"),
 ])
+# Optional experiment sources travel with a distribution that includes it.
+runtime = Path(os.environ.get("ZMD_RUNTIME_SOURCE", ROOT / "runtime")).expanduser().resolve()
+if (runtime / "renderers/moltenvk-experimental/provenance.json").is_file():
+    experimental = json.loads((PROJECT / "moltenvk-experimental.lock.json").read_text())
+    for name, entry in experimental.items():
+        filename = "CPM_0.40.8.cmake" if name == "cpm" else name + "-" + entry["commit"] + ".tar.gz"
+        source = ROOT / "downloads/moltenvk-experimental" / filename
+        download(entry["url"], source, entry["sha256"])
+        inputs.append((source, "moltenvk-experimental/" + filename))
 stamp = ROOT / "build/source-patches.json"
 if stamp.exists():
     inputs.append((stamp, "source-patches.json"))

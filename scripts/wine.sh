@@ -60,6 +60,7 @@ fi
 export WINEDLLPATH_DXMT="$ZMD_RUNTIME/renderers/dxmt"
 export WINEDLLPATH_PREPEND="$ZMD_RUNTIME/renderers/dxmt"
 export DXMT_ALLOW_CROSS_PROCESS_SWAPCHAIN=1
+unset MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS
 ZMD_SELECTED="${ZMD_RENDERER:-}"
 ZMD_OVERRIDES="${WINEDLLOVERRIDES:-winemenubuilder.exe=d;mscoree,mshtml=}"
 if [ -z "$ZMD_SELECTED" ] && [ -f "$ZMD_ROOT/renderer.conf" ]; then
@@ -85,8 +86,26 @@ case "${ZMD_SELECTED:-dxmt}" in
         ;;
     vulkan)
         unset DXMT_ENABLE_NVEXT
-        export CX_LIBVULKAN="$ZMD_RUNTIME/renderers/moltenvk/libMoltenVK.dylib"
+        ZMD_MVK=stable
+        if [ -f "$ZMD_ROOT/moltenvk.conf" ]; then
+            IFS= read -r ZMD_MVK < "$ZMD_ROOT/moltenvk.conf"
+        fi
+        case "$ZMD_MVK" in
+            stable) ZMD_MVK_DIR=moltenvk ;;
+            experimental) ZMD_MVK_DIR=moltenvk-experimental ;;
+            *) echo "Unknown MoltenVK version: $ZMD_MVK" >&2; exit 2 ;;
+        esac
+        export CX_LIBVULKAN="$ZMD_RUNTIME/renderers/$ZMD_MVK_DIR/libMoltenVK.dylib"
         [ -f "$CX_LIBVULKAN" ] || { echo "MoltenVK is not installed." >&2; exit 2; }
+        ZMD_VK_QUEUE=default
+        if [ -f "$ZMD_ROOT/vulkan-queue.conf" ]; then
+            IFS= read -r ZMD_VK_QUEUE < "$ZMD_ROOT/vulkan-queue.conf"
+        fi
+        case "$ZMD_VK_QUEUE" in
+            default) export MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=1 ;;
+            async) export MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0 ;;
+            *) echo "Unknown Vulkan queue mode: $ZMD_VK_QUEUE" >&2; exit 2 ;;
+        esac
         # This Wine source requires this name to honor CX_LIBVULKAN. DXMT stays
         # available for the official launcher's separate Direct3D UI.
         export CX_ACTIVE_GRAPHICS_BACKEND=wined3d

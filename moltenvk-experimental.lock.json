@@ -1,0 +1,36 @@
+{
+  "moltenvk": {
+    "repository": "KhronosGroup/MoltenVK",
+    "commit": "5189f8de86ec365860f63bf1da736815cfaea5cd",
+    "url": "https://codeload.github.com/KhronosGroup/MoltenVK/tar.gz/5189f8de86ec365860f63bf1da736815cfaea5cd",
+    "sha256": "430ebdd3df90aa398b78576b85a76a18d59da21c6b2d367be62d41f88c98da38"
+  },
+  "spirv-cross": {
+    "repository": "KhronosGroup/SPIRV-Cross",
+    "commit": "aa217aeb6c9f0ace7a0ab233b28807edf45eb165",
+    "url": "https://codeload.github.com/KhronosGroup/SPIRV-Cross/tar.gz/aa217aeb6c9f0ace7a0ab233b28807edf45eb165",
+    "sha256": "b99db6ee6182dbeb102257e755bf6d4978c23dcfd3329033304779279bc27212"
+  },
+  "vulkan-headers": {
+    "repository": "KhronosGroup/Vulkan-Headers",
+    "commit": "e3b1eec08173d6b825cd3ac88c885a63b621504a",
+    "url": "https://codeload.github.com/KhronosGroup/Vulkan-Headers/tar.gz/e3b1eec08173d6b825cd3ac88c885a63b621504a",
+    "sha256": "f492279345cbc10708b64fcd432b3ff6c8246a5837c4db2b649abba00cf82208"
+  },
+  "cereal": {
+    "repository": "USCiLab/cereal",
+    "commit": "a56bad8bbb770ee266e930c95d37fff2a5be7fea",
+    "url": "https://codeload.github.com/USCiLab/cereal/tar.gz/a56bad8bbb770ee266e930c95d37fff2a5be7fea",
+    "sha256": "12e10fb541270632f6683286ce8c7e8c321fe4addb53fa91ed498b95c1758f93"
+  },
+  "cpm": {
+    "url": "https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.40.8/CPM.cmake",
+    "sha256": "78ba32abdf798bc616bab7c73aac32a17bbd7b06ad9e26a6add69de8f3ae4791"
+  },
+  "finewine": {
+    "repository": "Lunarchy107/Endfield_FineWine",
+    "commit": "a62d906c18e790acad3603ea639a3baba4e201ad",
+    "url": "https://codeload.github.com/Lunarchy107/Endfield_FineWine/tar.gz/a62d906c18e790acad3603ea639a3baba4e201ad",
+    "sha256": "5f5260628591599219dbe3ea8d14e9c3962d24f14817fe5f60616559385a859d"
+  }
+}

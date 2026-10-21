@@ -6,6 +6,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let appURL: URL
     private let renderer = NSPopUpButton()
     private let windowMode = NSPopUpButton()
+    private let moltenvk = NSPopUpButton()
+    private let vulkanQueue = NSPopUpButton()
     private let msync = NSButton(checkboxWithTitle: "启用 MSync", target: nil, action: nil)
     private let hud = NSButton(checkboxWithTitle: "显示 Metal 性能面板", target: nil, action: nil)
     private let startup = NSButton(checkboxWithTitle: "打开启动器时显示设置", target: nil, action: nil)
@@ -76,6 +78,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
                             ("DirectX 11 · DXMT", "dxmt"),
                             ("DirectX 11 · DXMT + MetalFX", "dxmt-metalfx")])
         populate(windowMode, [("窗口化启动", "windowed"), ("使用游戏设置", "game")])
+        populate(moltenvk, [("稳定版", "stable"), ("实验版", "experimental")])
+        populate(vulkanQueue, [("默认（同步）", "default"), ("后台队列（实验）", "async")])
+        moltenvk.setAccessibilityLabel("Vulkan 版本")
+        vulkanQueue.setAccessibilityLabel("队列提交")
+        vulkanQueue.toolTip = "后台队列改变命令提交方式，不是异步着色器编译；保存并重启整个会话后生效。"
         populate(dxmtLog, [("默认", "default"), ("仅错误", "error"), ("详细", "debug"), ("关闭", "none")])
         populate(wineLog, [("仅错误", "errors"), ("错误与警告", "warnings"), ("关闭", "off")])
         renderer.setAccessibilityLabel("图形后端")
@@ -97,7 +104,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let runtimeTab = NSTabViewItem(identifier: "runtime")
         runtimeTab.label = "运行"
         runtimeTab.view = pane([
-            [label("图形后端"), renderer], [label("窗口模式"), windowMode],
+            [label("图形后端"), renderer], [label("Vulkan 版本"), moltenvk],
+            [label("队列提交"), vulkanQueue], [label("窗口模式"), windowMode],
             [label("同步"), msync], [label("性能监测"), hud],
         ])
         let logs = NSButton(title: "打开日志文件夹", target: self, action: #selector(openLogs))
@@ -170,6 +178,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             loaded = try configurationValues(appURL)
             select(renderer, value: loaded["--renderer"]!)
             select(windowMode, value: loaded["--window"]!)
+            select(moltenvk, value: loaded["--moltenvk"]!)
+            select(vulkanQueue, value: loaded["--vulkan-queue"]!)
+            updateVulkanControls()
             msync.state = loaded["--msync"] == "on" ? .on : .off
             hud.state = loaded["--hud"] == "on" ? .on : .off
             startup.state = loaded["--settings-window"] == "off" ? .off : .on
@@ -184,8 +195,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func controlChanged() {
+        updateVulkanControls()
         message.textColor = .secondaryLabelColor
         message.stringValue = "更改尚未保存。"
+    }
+
+    private func updateVulkanControls() {
+        let enabled = renderer.selectedItem?.representedObject as? String == "vulkan"
+        moltenvk.isEnabled = enabled
+        vulkanQueue.isEnabled = enabled
     }
 
     @objc private func startupChanged() {
@@ -203,6 +221,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     @objc private func saveSettings() {
         let values = ["--renderer": renderer.selectedItem?.representedObject as? String ?? "",
+                      "--moltenvk": moltenvk.selectedItem?.representedObject as? String ?? "",
+                      "--vulkan-queue": vulkanQueue.selectedItem?.representedObject as? String ?? "",
                       "--window": windowMode.selectedItem?.representedObject as? String ?? "",
                       "--msync": msync.state == .on ? "on" : "off",
                       "--hud": hud.state == .on ? "on" : "off",

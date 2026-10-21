@@ -7,7 +7,7 @@ import zipfile
 root = Path(__file__).resolve().parents[1]
 files = [root / name for name in (
     "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", ".gitignore",
-    "dependencies.lock.json", "macports.lock.json",
+    "dependencies.lock.json", "macports.lock.json", "moltenvk-experimental.lock.json",
 )]
 for directory in ("Sources", "Tests", "scripts", "docs", "licenses", ".github"):
     files.extend(path for path in (root / directory).rglob("*")

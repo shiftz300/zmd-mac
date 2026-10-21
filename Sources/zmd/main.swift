@@ -13,6 +13,7 @@ func help() {
                 [--renderer vulkan|dxmt|dxmt-metalfx] [--window windowed|game]
                 [--region cn|global] [--sha256 校验值] [--desktop]
     zmd configure --app 应用.app [--renderer vulkan|dxmt|dxmt-metalfx]
+                  [--moltenvk stable|experimental] [--vulkan-queue default|async]
                   [--window windowed|game] [--hud on|off] [--msync on|off]
                   [--settings-window on|off]
                   [--dxmt-log default|error|debug|none] [--wine-log errors|warnings|off]
@@ -88,6 +89,7 @@ func inspect(_ app: URL) throws {
         .trimmingCharacters(in: .whitespacesAndNewlines)) ?? "cn"
     for (key, file, fallback) in [
         ("renderer", "renderer.conf", "dxmt"), ("window", "window-mode.conf", "game"),
+        ("moltenvk_channel", "moltenvk.conf", "stable"), ("vulkan_queue", "vulkan-queue.conf", "default"),
         ("metal_hud", "metal-hud.conf", "off"), ("msync", "msync.conf", "on"),
         ("settings_window", "settings-window.conf", "on"),
         ("dxmt_log", "dxmt-log.conf", "default"), ("wine_log", "wine-log.conf", "errors"),
@@ -100,6 +102,7 @@ func inspect(_ app: URL) throws {
     for (key, file) in [
         ("runtime", "runtime/provenance.json"),
         ("moltenvk", "runtime/renderers/moltenvk/provenance.json"),
+        ("moltenvk_experimental", "runtime/renderers/moltenvk-experimental/provenance.json"),
         ("dxmt_metalfx", "runtime/renderers/dxmt-metalfx/provenance.json"),
     ] {
         if let data = try? Data(contentsOf: support.appendingPathComponent(file)) {
@@ -288,6 +291,7 @@ do {
         try install(options(arguments.dropFirst(), allowed: ["--exe", "--output", "--renderer", "--window", "--region", "--sha256", "--desktop"]))
     case "configure":
         let args = try options(arguments.dropFirst(), allowed: ["--app", "--renderer", "--window", "--hud", "--msync", "--settings-window",
+                                                              "--moltenvk", "--vulkan-queue",
                                                               "--dxmt-log", "--wine-log", "--shader-cache", "--metal-validation", "--shader-validation"])
         try check(args["--app"] != nil && args.count > 1, "请指定 --app 和至少一项配置。")
         try configure(optionPath(args["--app"]!), args)

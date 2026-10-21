@@ -97,6 +97,38 @@ with tempfile.TemporaryDirectory(prefix="zmd cli ") as temporary:
     result = subprocess.check_output(["bash", str(wrapper)], text=True,
                                      env={**os.environ, "DXMT_ENABLE_NVEXT": "1"})
     assert result == "unset:" + str(support / "runtime/renderers/dxmt") + ":" + str(vulkan / "libMoltenVK.dylib") + "|" + defaults
+    # A missing experimental library must not partially change renderer/queue.
+    result = subprocess.run([exe, "configure", "--app", str(app), "--moltenvk", "experimental",
+                             "--vulkan-queue", "async"], capture_output=True)
+    assert result.returncode != 0 and not (support / "vulkan-queue.conf").exists()
+    experimental = support / "runtime/renderers/moltenvk-experimental"
+    experimental.mkdir()
+    (experimental / "libMoltenVK.dylib").touch()
+    (experimental / "provenance.json").write_text('{"version":"experimental-test"}')
+    wine.write_text('#!/bin/bash\nprintf "%s|%s" "${CX_LIBVULKAN-unset}" "${MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS-unset}"\n')
+    for channel, directory in [("stable", vulkan), ("experimental", experimental)]:
+        for queue, expected in [("default", "1"), ("async", "0")]:
+            subprocess.run([exe, "configure", "--app", str(app), "--moltenvk", channel,
+                            "--vulkan-queue", queue], check=True)
+            result = subprocess.check_output(["bash", str(wrapper)], text=True,
+                env={**os.environ, "MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS": "garbage"})
+            assert result == str(directory / "libMoltenVK.dylib") + "|" + expected
+    subprocess.run([exe, "configure", "--app", str(app), "--renderer", "dxmt"], check=True)
+    assert subprocess.check_output(["bash", str(wrapper)], text=True,
+        env={**os.environ, "MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS": "0"}) == "unset|unset"
+    subprocess.run([exe, "configure", "--app", str(app), "--renderer", "vulkan",
+                    "--moltenvk", "stable", "--vulkan-queue", "default"], check=True)
+    assert subprocess.check_output(["bash", str(wrapper)], text=True) == str(vulkan / "libMoltenVK.dylib") + "|1"
+    report = json.loads(subprocess.check_output([exe, "inspect", "--app", str(app)]))
+    assert report["moltenvk_channel"] == "stable" and report["vulkan_queue"] == "default"
+    assert report["moltenvk_experimental"]["version"] == "experimental-test"
+    for file in ["moltenvk.conf", "vulkan-queue.conf"]:
+        path = support / file
+        previous = path.read_text()
+        path.write_text("invalid\n")
+        result = subprocess.run(["bash", str(wrapper)], capture_output=True)
+        assert result.returncode == 2 and not result.stdout
+        path.write_text(previous)
     wine.write_text('#!/bin/bash\nprintf "%s|%s|%s|%s|%s" "$WINEDEBUG" "${DXMT_LOG_LEVEL-unset}" "${DXMT_SHADER_CACHE-unset}" "${MTL_DEBUG_LAYER-unset}" "${MTL_SHADER_VALIDATION-unset}"\n')
     subprocess.run([exe, "configure", "--app", str(app), "--dxmt-log", "debug", "--wine-log", "warnings",
                     "--shader-cache", "off", "--metal-validation", "on", "--shader-validation", "on"], check=True)

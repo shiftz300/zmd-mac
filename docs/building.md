@@ -41,6 +41,30 @@ python3 scripts/test-wine-session.py
 已有开发运行库需要先执行 `python3 scripts/build-dxmt-metalfx.py`。
 若已有不同版本的 `runtime/renderers/dxmt-metalfx`，先将其移至备份目录；脚本拒绝覆盖。
 
+## 可选 MoltenVK 实验版
+
+```sh
+python3 scripts/build-moltenvk-experimental.py --runtime "$PWD/runtime"
+python3 scripts/test-vulkan.py --runtime "$PWD/runtime"
+```
+
+另外需要开发机上的 CMake 和 Ninja；使用 Command Line Tools 的 Clang，不需要完整 Xcode。
+固定来源见 `moltenvk-experimental.lock.json`：MoltenVK `5189f8de86ec`（1.4.3 开发版），
+配套 SPIRV-Cross `aa217aeb6c9f`；保留 FineWine 的 7 个 MoltenVK 补丁和 1 个 SPIRV-Cross 补丁。
+Release 构建仅生成 Rosetta Wine 使用的 x86_64 库，外部依赖静态链接，最终只依赖 macOS 系统库。
+保留管线缓存支持；省略只用于调试反汇编的 SPIRV-Tools。
+源码归档构建显式记录正确的 MoltenVK revision，避免误用外层 zmd-mac Git 提交生成缓存 UUID。
+
+脚本只写入 `renderers/moltenvk-experimental`，不改稳定版或自动启用实验版，目标已存在时拒绝覆盖。
+需要更新时先保留旧实验目录再构建；日常只维护一个稳定槽和一个实验槽。
+默认完整发行构建不编译此选装项；打包已有运行库时会携带其中的实验库与许可证。
+使用 `package-sources.py` 时，其工作目录中的运行库若包含实验库，也会加入锁定的实验源码。
+
+`test-vulkan.py` 使用临时 prefix，检查两个版本 × 两种队列模式的窗口、设备、清屏、呈现和退出。
+需要已登录的图形桌面；它不验证终末地着色器、FSR、插帧或游戏性能。
+游戏对照顺序：稳定＋默认 → 实验＋默认 → 实验＋后台队列；保持场景、画质与超分档位一致。
+每次切换都完整重启会话，新版本首次访问场景可能重新建立缓存，不与热缓存数据混比。
+
 复用开发机上已有的独立运行库：
 
 ```sh

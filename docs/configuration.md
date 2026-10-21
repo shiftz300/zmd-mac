@@ -34,6 +34,17 @@ MoltenVK 来自 FineWine 1.2.4 模块发布包，来源及哈希写入
 `runtime/renderers/moltenvk/provenance.json`。Wine、补丁和 DXMT 的记录在
 `runtime/provenance.json`。CLI 的 `inspect` 可读取这些公开信息。
 独立 MetalFX 后端的补丁和 DLL 哈希位于 `runtime/renderers/dxmt-metalfx/provenance.json`。
+
+原生设置的「Vulkan 版本」提供稳定版／实验版；「队列提交」提供默认（同步）／后台队列。
+也可使用 `zmd configure --app 应用.app --renderer vulkan --moltenvk experimental --vulkan-queue default`。
+实验版单独安装到 `runtime/renderers/moltenvk-experimental`，未安装时拒绝保存该选项。
+未设置时始终使用稳定版和同步提交；实验库缺失时会报错，不静默换库。
+后台队列对应 `MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=0`，默认对应 `1`，
+仅在 Vulkan 路径生效。它改变命令提交线程，不是异步着色器编译。
+保存只影响下一次完整会话；退出游戏和官方启动器后再重开。
+恢复时选择稳定版与默认队列，或 `--moltenvk stable --vulkan-queue default`。
+实验库、源码提交与 SHA-256 可通过 `zmd inspect` 查看。
+
 切回 `vulkan` 或原版 `dxmt` 时会关闭 NVEXT。
 MetalFX 模式另加 `nvngx=b;sl.dlss_g,sl.dlss_d,sl.deepdvc=d`，只启用支持的
 DLSS 超分接口。`prepare-metalfx.sh` 从本机游戏复制签名 `nvngx_dlss.dll` 到

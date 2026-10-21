@@ -151,6 +151,7 @@ func copyDirectory(_ source: URL, _ destination: URL, log: FileHandle?) throws {
 func validateConfiguration(_ args: [String: String]) throws {
     for (key, values) in [
         "--renderer": ["vulkan", "dxmt", "dxmt-metalfx"], "--window": ["windowed", "game"],
+        "--moltenvk": ["stable", "experimental"], "--vulkan-queue": ["default", "async"],
         "--hud": ["on", "off"], "--msync": ["on", "off"], "--settings-window": ["on", "off"],
         "--dxmt-log": ["default", "error", "debug", "none"], "--wine-log": ["errors", "warnings", "off"],
         "--shader-cache": ["on", "off"], "--metal-validation": ["on", "off"],
@@ -178,6 +179,7 @@ func configure(_ app: URL, _ args: [String: String]) throws {
     let support = try supportDirectory(app)
     let wrapper = try String(contentsOf: support.appendingPathComponent("scripts/wine.sh"), encoding: .utf8)
     for (option, marker) in ["--hud": "metal-hud.conf", "--msync": "msync.conf",
+                             "--moltenvk": "moltenvk.conf", "--vulkan-queue": "vulkan-queue.conf",
                              "--dxmt-log": "dxmt-log.conf", "--wine-log": "wine-log.conf",
                              "--shader-cache": "shader-cache.conf", "--metal-validation": "metal-validation.conf",
                              "--shader-validation": "shader-validation.conf"] {
@@ -187,6 +189,17 @@ func configure(_ app: URL, _ args: [String: String]) throws {
     }
     if args["--renderer"] == "vulkan" {
         try check(manager.fileExists(atPath: support.appendingPathComponent("runtime/renderers/moltenvk/libMoltenVK.dylib").path), "此应用未安装 MoltenVK。")
+    }
+    if args["--moltenvk"] != nil || args["--renderer"] == "vulkan" {
+        let selected = try args["--moltenvk"] ?? configurationValues(app)["--moltenvk"]!
+        try check(["stable", "experimental"].contains(selected), "未知 MoltenVK 配置。")
+        if selected == "experimental" {
+            try check(wrapper.contains("moltenvk-experimental"), "请先更新应用包装层。")
+            for file in ["libMoltenVK.dylib", "provenance.json"] {
+                try check(manager.fileExists(atPath: support.appendingPathComponent("runtime/renderers/moltenvk-experimental/" + file).path),
+                          "此应用未安装实验版 MoltenVK；配置未写入。")
+            }
+        }
     }
     if args["--renderer"] == "dxmt-metalfx" {
         let launch = try String(contentsOf: app.appendingPathComponent("Contents/MacOS/launch.sh"), encoding: .utf8)
@@ -232,6 +245,7 @@ func configure(_ app: URL, _ args: [String: String]) throws {
 
 let configurationFields = [
     ("--renderer", "renderer.conf", "dxmt"), ("--window", "window-mode.conf", "game"),
+    ("--moltenvk", "moltenvk.conf", "stable"), ("--vulkan-queue", "vulkan-queue.conf", "default"),
     ("--hud", "metal-hud.conf", "off"), ("--msync", "msync.conf", "on"),
     ("--settings-window", "settings-window.conf", "on"),
     ("--dxmt-log", "dxmt-log.conf", "default"), ("--wine-log", "wine-log.conf", "errors"),
