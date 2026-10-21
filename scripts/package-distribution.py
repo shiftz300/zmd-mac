@@ -80,11 +80,11 @@ def build(args):
             "CFBundleDevelopmentRegion": "zh_CN", "CFBundleDisplayName": "鹰角启动器",
             "CFBundleName": "鹰角启动器", "CFBundleIdentifier": "local.zmdmac.endfield.template",
             "CFBundleExecutable": "Endfield", "CFBundlePackageType": "APPL",
-            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.3",
+            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.4",
             "CFBundleVersion": "5", "LSMinimumSystemVersion": "27.0",
             "LSMultipleInstancesProhibited": True, "NSHighResolutionCapable": True,
-            # Discoverable app on disk; the native entry uses accessory mode at runtime.
-            "LSUIElement": False,
+            # The payload is not an installed app. Installation makes its copy discoverable.
+            "LSUIElement": True,
         }
         (contents / "Info.plist").write_bytes(plistlib.dumps(metadata))
         copy_tree(runtime, payload / "runtime")

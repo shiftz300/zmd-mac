@@ -26,6 +26,8 @@ with tempfile.TemporaryDirectory(prefix="zmd-pkg-test-") as temporary:
     assert choices["cn"].get("start_selected") == "true"
     assert choices["global"].get("start_selected") == "false"
     assert choices["runtime"].get("selected") == "true"
+    for region, name in (("cn", "鹰角启动器"), ("global", "GRYPHLINK")):
+        assert "~/Applications/" + name + ".app" in choices[region].get("description", "")
     for region in ("cn", "global"):
         component = expanded / (region + ".pkg")
         info = ET.parse(component / "PackageInfo").getroot()
@@ -38,7 +40,10 @@ with tempfile.TemporaryDirectory(prefix="zmd-pkg-test-") as temporary:
         assert "launchctl asuser" in helper and "sudo -H -u" in helper and "env -i" in helper
         subprocess.run(["bash", "-n", str(script)], check=True)
     payload = expanded / "runtime.pkg/Payload/payload"
-    app_version = plistlib.loads((payload / "AppTemplate.app/Contents/Info.plist").read_bytes())["CFBundleShortVersionString"]
+    template = plistlib.loads((payload / "AppTemplate.app/Contents/Info.plist").read_bytes())
+    assert template["LSUIElement"] is True, "Uninstalled template must stay out of the application list"
+    assert set(p.name for p in payload.glob("*.app")) == {"AppTemplate.app"}, "Unexpected standalone settings app"
+    app_version = template["CFBundleShortVersionString"]
     for region in ("runtime", "cn", "global"):
         info = ET.parse(expanded / (region + ".pkg/PackageInfo")).getroot()
         assert info.get("version") == app_version, "PKG component/app version mismatch"

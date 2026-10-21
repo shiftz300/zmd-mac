@@ -117,7 +117,7 @@ func inspect(_ app: URL) throws {
 
 func installIcon(_ app: URL, _ version: URL, log: FileHandle) throws {
     let icon = version.appendingPathComponent("res/icons/app.ico")
-    guard manager.fileExists(atPath: icon.path) else { return }
+    try check(manager.fileExists(atPath: icon.path), "官方安装包缺少启动器图标，请更新安装器后重试。")
     let temporary = manager.temporaryDirectory.appendingPathComponent("zmd-icon-" + UUID().uuidString)
     try manager.createDirectory(at: temporary, withIntermediateDirectories: true)
     defer { try? manager.removeItem(at: temporary) }
@@ -248,6 +248,7 @@ func install(_ args: [String: String]) throws {
     plist["CFBundleIdentifier"] = "local.zmdmac.endfield." + UUID().uuidString.lowercased()
     plist["CFBundleName"] = output.deletingPathExtension().lastPathComponent
     plist["CFBundleDisplayName"] = output.deletingPathExtension().lastPathComponent
+    plist["LSUIElement"] = false
     if manager.fileExists(atPath: app.appendingPathComponent("Contents/Resources/Endfield.icns").path) {
         plist["CFBundleIconFile"] = "Endfield.icns"
     }

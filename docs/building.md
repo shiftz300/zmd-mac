@@ -90,6 +90,13 @@ python3 scripts/test-pkg.py release/zmd-mac-macos-arm64.pkg
 
 PKG 内容和选择项检查不会执行系统安装；全新用户的系统安装验收需另行执行。
 
+安装行为检查可使用国服和 Global 的官方 EXE，在临时目录分别生成应用，检查名称、图标、
+可见属性和系统注册，最后注销测试入口。不会启动游戏或修改已安装的应用：
+
+```sh
+python3 scripts/test-installation.py release/zmd-mac --cn-exe /路径/HypergryphLauncher.exe --global-exe /路径/GRYPHLINK.exe
+```
+
 GitHub `Build` 工作流在 main/master push、v* 标签和手动触发时执行完整构建。
 `Checks` 在 pull request 执行快速测试。当前使用
 [xcode-27 Apple Silicon runner](https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md)，
@@ -117,13 +124,13 @@ CI 将其作为 `third-party-source-inputs` artifact 上传。该脚本与完整
 ## 自动 GitHub Release
 
 推送 `v主版本.次版本.修订号` 标签后，`Build` 会自动完成构建和校验，再发布 GitHub Release。
-例如 `v0.5.3` 为正式版，`v0.5.3-rc.1` 为预发布版；预发布版不会标记为 Latest。
+例如 `v0.5.4` 为正式版，`v0.5.4-rc.1` 为预发布版；预发布版不会标记为 Latest。
 标签的数字版本必须与安装包中的应用版本一致。更新版本时同步修改
 `package-distribution.py`、`package-pkg.py`、`install-native-launcher.py` 的版本字段。
 
 ```sh
-git tag -a v0.5.3 -m "Release v0.5.3"
-git push origin v0.5.3
+git tag -a v0.5.4 -m "Release v0.5.4"
+git push origin v0.5.4
 ```
 
 发布附件为 PKG、CLI ZIP 和第三方源码 tar.gz。项目源码使用 GitHub 自带的下载入口；
@@ -138,6 +145,6 @@ SHA-256 文件仅供 CI 发布前校验，不上传到 Release。第三方源码
 本地验证发布附件（不会连接 GitHub）：
 
 ```sh
-python3 scripts/publish-release.py --tag v0.5.3 --directory release --check-only
+python3 scripts/publish-release.py --tag v0.5.4 --directory release --check-only
 python3 scripts/test-release.py
 ```

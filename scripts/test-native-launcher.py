@@ -54,3 +54,6 @@ done
         raise
     finally:
         subprocess.run([str(build / "check"), str(app), "--cleanup"], check=True, timeout=10)
+        register = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+        for registered in (fixture.parent, app):
+            subprocess.run([register, "-u", str(registered)], check=False)
