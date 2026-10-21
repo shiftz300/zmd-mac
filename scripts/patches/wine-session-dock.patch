@@ -17,7 +17,7 @@
 +
 +            if (getenv("ZMD_SESSION_ID"))
 +            {
-+                item = [submenu addItemWithTitle:@"终末地设置…"
++                item = [submenu addItemWithTitle:@"运行设置…"
 +                                          action:@selector(zmdShowSettings:) keyEquivalent:@","];
 +                [item setTarget:self];
 +                [submenu addItem:[NSMenuItem separatorItem]];

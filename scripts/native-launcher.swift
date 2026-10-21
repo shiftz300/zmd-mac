@@ -102,7 +102,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         let applicationItem = NSMenuItem()
         let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "鹰角启动器"
         let applicationMenu = NSMenu(title: appName)
-        let settingsItem = applicationMenu.addItem(withTitle: "终末地设置…", action: #selector(showSettings), keyEquivalent: ",")
+        let settingsItem = applicationMenu.addItem(withTitle: "运行设置…", action: #selector(showSettings), keyEquivalent: ",")
         settingsItem.target = self
         applicationMenu.addItem(.separator())
         applicationMenu.addItem(withTitle: "退出\(appName)", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")

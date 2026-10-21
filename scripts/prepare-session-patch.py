@@ -5,7 +5,7 @@ from bootstrap import ROOT, PROJECT, digest
 from build_support import ensure_git_patch
 
 patch = PROJECT / "scripts/patches/wine-session-dock.patch"
-expected = "8915a5c6fa5e31cffb46e95cf02813947c112e706f660a08b8096f5ee27f61d2"
+expected = "39e6e744c238949ebecaa9ba661502c1eeae5cf9f8656dc06ffa268c4486daa9"
 if digest(patch) != expected:
     raise SystemExit("Wine session patch checksum mismatch.")
 source = ROOT / "build/wine-src"
