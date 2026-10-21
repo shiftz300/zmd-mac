@@ -1,6 +1,6 @@
 # zmd-mac
 
-在 Apple Silicon Mac 上安装和运行《明日方舟：终末地》，支持国服和 Global。
+为《明日方舟：终末地》的官方启动器提供 macOS 安装包，支持国服和 Global。
 
 需要 **macOS 27+、Rosetta 2**。安装包内置 Wine 和图形转译组件，无需 Python、Homebrew 或 Windows 虚拟机。
 
@@ -11,8 +11,10 @@
 - **PKG**：双击安装，在「安装类型 → 自定」选择国服或 Global，也可同时安装。
 - **ZIP**：解压后双击 `安装终末地.command`，下载官方启动器或选择本地安装 EXE。
 
-安装完成后，打开 `~/Applications/终末地.app` 或 `终末地 Global.app`，由官方启动器下载并启动游戏。
+安装完成后，打开 `~/Applications/鹰角启动器.app`（国服）或 `~/Applications/GRYPHLINK.app`（Global），下载并启动游戏。
 两服的游戏目录和登录状态独立，已有同名应用不会被覆盖。
+
+旧版的「终末地.app」或「终末地 Global.app」可继续使用；发现旧入口时，默认安装会停止，避免重复安装。
 
 PKG 需要管理员授权和网络连接。安装包尚未公证，如被系统拦截，请在「隐私与安全性」中允许打开。
 未安装 Rosetta 时，按提示完成安装。
@@ -44,10 +46,10 @@ PKG 需要管理员授权和网络连接。安装包尚未公证，如被系统�
 
 ```sh
 # 查看配置
-./zmd inspect --app "$HOME/Applications/终末地.app"
+./zmd inspect --app "$HOME/Applications/鹰角启动器.app"
 
 # 恢复稳定版 Vulkan 和默认队列
-./zmd configure --app "$HOME/Applications/终末地.app" --renderer vulkan --moltenvk stable --vulkan-queue default
+./zmd configure --app "$HOME/Applications/鹰角启动器.app" --renderer vulkan --moltenvk stable --vulkan-queue default
 ```
 
 Vulkan 下部分场景的 FSR 可能出现黑纹，可改用 TAAU。DXMT + MetalFX 通过游戏的 DLSS 选项使用，不支持 DLSS 帧生成；实际性能因场景而异。

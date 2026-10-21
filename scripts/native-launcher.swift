@@ -96,11 +96,12 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
             suspensionBehavior: .deliverImmediately)
         let menu = NSMenu()
         let applicationItem = NSMenuItem()
-        let applicationMenu = NSMenu(title: "终末地")
+        let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "鹰角启动器"
+        let applicationMenu = NSMenu(title: appName)
         let settingsItem = applicationMenu.addItem(withTitle: "终末地设置…", action: #selector(showSettings), keyEquivalent: ",")
         settingsItem.target = self
         applicationMenu.addItem(.separator())
-        applicationMenu.addItem(withTitle: "退出终末地", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        applicationMenu.addItem(withTitle: "退出\(appName)", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         applicationItem.submenu = applicationMenu
         menu.addItem(applicationItem)
         NSApp.mainMenu = menu
@@ -135,7 +136,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
             if preference?.trimmingCharacters(in: .whitespacesAndNewlines) != "off" { showSettings() }
         } catch {
             finished = true
-            showError("无法打开终末地", detail: error.localizedDescription)
+            showError("无法打开官方启动器", detail: error.localizedDescription)
             NSApp.terminate(nil)
         }
     }

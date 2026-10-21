@@ -5,7 +5,7 @@
 记录输出分辨率和内部渲染比例；“4K 输出”不自动等于原生 4K 渲染。
 
 ```sh
-./zmd configure --app "$HOME/Applications/终末地.app" --hud on
+./zmd configure --app "$HOME/Applications/鹰角启动器.app" --hud on
 ```
 
 退出游戏和启动器后重开。该开关启用 Apple 的
@@ -70,11 +70,11 @@ FSR 超分辨率和帧生成是不同功能。Native AA 也可能不降低内部
 ## 可逆的后端与同步测试
 
 ```sh
-./zmd configure --app "$HOME/Applications/终末地.app" --renderer dxmt --window windowed
-./zmd configure --app "$HOME/Applications/终末地.app" --renderer dxmt-metalfx --window windowed
-./zmd configure --app "$HOME/Applications/终末地.app" --renderer vulkan --window windowed
-./zmd configure --app "$HOME/Applications/终末地.app" --msync off
-./zmd configure --app "$HOME/Applications/终末地.app" --msync on
+./zmd configure --app "$HOME/Applications/鹰角启动器.app" --renderer dxmt --window windowed
+./zmd configure --app "$HOME/Applications/鹰角启动器.app" --renderer dxmt-metalfx --window windowed
+./zmd configure --app "$HOME/Applications/鹰角启动器.app" --renderer vulkan --window windowed
+./zmd configure --app "$HOME/Applications/鹰角启动器.app" --msync off
+./zmd configure --app "$HOME/Applications/鹰角启动器.app" --msync on
 ```
 
 每次设置后正常退出并重开。不清理缓存、不修改游戏可执行文件，也不自动降低画质。
@@ -84,7 +84,7 @@ MetalFX 出现异常时先在游戏内恢复 TAAU，正常退出后切回 `vulka
 
 ## 原生调试选项
 
-在「运行设置 → 调试」中修改，或使用 `./zmd configure --app "/应用路径/终末地.app"` 加下表参数。保存后退出游戏及启动器并重开，运行中的会话不会被修改。
+在「运行设置 → 调试」中修改，或使用 `./zmd configure --app "/应用路径/鹰角启动器.app"` 加下表参数。保存后退出游戏及启动器并重开，运行中的会话不会被修改。
 
 | CLI 参数 | 默认 | 对应行为 |
 | --- | --- | --- |

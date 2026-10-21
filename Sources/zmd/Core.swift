@@ -5,7 +5,8 @@ enum GameRegion: String, CaseIterable {
     case cn, global
 
     var title: String { self == .cn ? "国服" : "Global · GRYPHLINK" }
-    var appName: String { self == .cn ? "终末地" : "终末地 Global" }
+    var appName: String { self == .cn ? "鹰角启动器" : "GRYPHLINK" }
+    var legacyAppName: String { self == .cn ? "终末地" : "终末地 Global" }
     var installerURL: String {
         switch self {
         case .cn: return "https://launcher.hypergryph.com/launcher/get_latest_launcher?appcode=abYeZZ16BPluCFyT&ta=endfield&channel=1&sub_channel=1"

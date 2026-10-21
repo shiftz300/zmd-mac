@@ -10,7 +10,7 @@ func help() {
     print("""
     zmd-mac — 终末地 macOS 安装器
 
-    zmd install [--exe 官方安装包.exe] [--output ~/Applications/终末地.app]
+    zmd install [--exe 官方安装包.exe] [--output ~/Applications/鹰角启动器.app]
                 [--renderer vulkan|dxmt|dxmt-metalfx] [--window windowed|game]
                 [--region cn|global] [--sha256 校验值] [--desktop]
     zmd configure --app 应用.app [--renderer vulkan|dxmt|dxmt-metalfx]
@@ -143,6 +143,11 @@ func install(_ args: [String: String]) throws {
     let officialURL = region.installerURL
     try validateConfiguration(args)
     let output = optionPath(args["--output"] ?? "~/Applications/\(region.appName).app")
+    if args["--output"] == nil {
+        let legacy = optionPath("~/Applications/\(region.legacyAppName).app")
+        try check(!manager.fileExists(atPath: legacy.path),
+                  "发现旧版应用，已保留：\(legacy.path)。可继续使用；如需另装一份，请指定 --output。")
+    }
     try check(output.pathExtension == "app", "输出路径必须以 .app 结尾。")
     try check(!manager.fileExists(atPath: output.path) &&
               (try? manager.destinationOfSymbolicLink(atPath: output.path)) == nil,

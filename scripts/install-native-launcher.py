@@ -11,7 +11,10 @@ import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
-APP = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT / "dist/终末地.app"
+DEFAULT_APP = ROOT / "dist/鹰角启动器.app"
+if not DEFAULT_APP.exists():
+    DEFAULT_APP = ROOT / "dist/终末地.app"  # Existing development bundle.
+APP = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else DEFAULT_APP
 CONTENTS = APP / "Contents"
 ENTRY = CONTENTS / "MacOS/Endfield"
 if not ENTRY.is_file():
@@ -51,8 +54,10 @@ for source, target in (
     temporary.chmod(0o755)
     temporary.replace(target)
 metadata = plistlib.loads((CONTENTS / "Info.plist").read_bytes())
-metadata["CFBundleShortVersionString"] = "0.5.2"
+metadata["CFBundleShortVersionString"] = "0.5.3"
 metadata["CFBundleVersion"] = "5"
+metadata["CFBundleName"] = APP.stem
+metadata["CFBundleDisplayName"] = APP.stem
 metadata["LSMultipleInstancesProhibited"] = True
 metadata["LSUIElement"] = False
 temporary = CONTENTS / "Info.plist.new"
@@ -62,7 +67,10 @@ temporary.replace(CONTENTS / "Info.plist")
 # Verify the executable only: this local bundle intentionally contains mutable
 # game data and is not signed with a sealed bundle resource envelope.
 subprocess.run(["codesign", "--verify", "--ignore-resources", str(ENTRY)], check=True)
-subprocess.run(["/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
-                "-f", str(APP)], check=True)
+registration = subprocess.run([
+    "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
+    "-f", str(APP)], check=False)
+if registration.returncode:
+    print("Entry updated; system app registration needs to be retried outside the sandbox.")
 print(f"Native launch/quit entry installed: {APP}")
 print(f"Previous entry saved: {backup}")

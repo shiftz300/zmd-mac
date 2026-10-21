@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 PROJECT = Path(__file__).resolve().parents[1]
 INSTALL_ROOT = "/Library/Application Support/zmd-mac"
-VERSION = "0.5.2"
+VERSION = "0.5.3"
 
 
 def build(distribution, output):
@@ -96,7 +96,7 @@ zmd_as_user '/Library/Application Support/zmd-mac/zmd' install --region ''' + re
 <p>需要 Apple Silicon、macOS 27、Rosetta 2 和网络。游戏资源由官方启动器下载。</p>
 <p>已有同名应用时停止该项安装，不覆盖游戏或账号。Global 尚未完成游戏内兼容性验证。</p>''')
         (resources / "conclusion.html").write_text('''<!doctype html><meta charset="utf-8">
-<h2>安装完成</h2><p>从桌面或个人「应用程序」目录打开「终末地」／「终末地 Global」，
+<h2>安装完成</h2><p>从桌面或个人「应用程序」目录打开「鹰角启动器」／「GRYPHLINK」，
 在官方启动器中下载并开始游戏。</p><p>运行设置可从左上角应用菜单打开。</p>''')
         doc = ET.Element("installer-gui-script", {"minSpecVersion": "2"})
         ET.SubElement(doc, "title").text = "终末地"
@@ -115,7 +115,7 @@ zmd_as_user '/Library/Application Support/zmd-mac/zmd' install --region ''' + re
             if region == "runtime":
                 attributes.update({"visible": "false", "enabled": "false", "selected": "true"})
             else:
-                attributes["description"] = "安装到当前用户的 ~/Applications/" + ("终末地" if region == "cn" else "终末地 Global") + ".app；已有应用不会覆盖。"
+                attributes["description"] = "安装到当前用户的 ~/Applications/" + ("鹰角启动器" if region == "cn" else "GRYPHLINK") + ".app；已有应用不会覆盖。"
             choice = ET.SubElement(doc, "choice", attributes)
             identifier = "local.zmdmac.installer." + region
             ET.SubElement(choice, "pkg-ref", {"id": identifier})

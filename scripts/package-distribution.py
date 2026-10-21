@@ -77,10 +77,10 @@ def build(args):
                             *map(str, sources), "-o", str(target)], check=True)
             subprocess.run(["codesign", "--force", "--sign", "-", str(target)], check=True)
         metadata = {
-            "CFBundleDevelopmentRegion": "zh_CN", "CFBundleDisplayName": "终末地",
-            "CFBundleName": "终末地", "CFBundleIdentifier": "local.zmdmac.endfield.template",
+            "CFBundleDevelopmentRegion": "zh_CN", "CFBundleDisplayName": "鹰角启动器",
+            "CFBundleName": "鹰角启动器", "CFBundleIdentifier": "local.zmdmac.endfield.template",
             "CFBundleExecutable": "Endfield", "CFBundlePackageType": "APPL",
-            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.2",
+            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.3",
             "CFBundleVersion": "5", "LSMinimumSystemVersion": "27.0",
             "LSMultipleInstancesProhibited": True, "NSHighResolutionCapable": True,
             # Discoverable app on disk; the native entry uses accessory mode at runtime.

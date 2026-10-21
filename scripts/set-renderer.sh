@@ -2,7 +2,9 @@
 # Configure the next launch only. Never terminate a running game.
 set -euo pipefail
 ZMD_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-if [ -d "$ZMD_ROOT/dist/终末地.app/Contents/SharedSupport" ]; then
+if [ -d "$ZMD_ROOT/dist/鹰角启动器.app/Contents/SharedSupport" ]; then
+    ZMD_ROOT="$ZMD_ROOT/dist/鹰角启动器.app/Contents/SharedSupport"
+elif [ -d "$ZMD_ROOT/dist/终末地.app/Contents/SharedSupport" ]; then
     ZMD_ROOT="$ZMD_ROOT/dist/终末地.app/Contents/SharedSupport"
 fi
 case "${1:-}" in
@@ -23,4 +25,4 @@ if [ "$#" -gt 1 ]; then
     printf '%s\n' "$2" > "$ZMD_ROOT/window-mode.conf"
 fi
 printf '%s\n' "$1" > "$ZMD_ROOT/renderer.conf"
-printf 'Next launch: %s. Exit the game and launcher normally, then reopen 终末地.app.\n' "$1"
+printf 'Next launch: %s. Exit the game and launcher normally, then reopen the official launcher app.\n' "$1"

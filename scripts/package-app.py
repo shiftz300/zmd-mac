@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-APP = ROOT / "dist/终末地.app"
+APP = ROOT / "dist/鹰角启动器.app"
 SUPPORT = APP / "Contents/SharedSupport"
 PREFIX = ROOT / "prefix"
 
@@ -36,8 +36,8 @@ shutil.copy2(ROOT / "scripts/app-launch.sh", entry)
 entry.chmod(0o755)
 metadata = {
     "CFBundleDevelopmentRegion": "zh_CN",
-    "CFBundleDisplayName": "终末地",
-    "CFBundleName": "终末地",
+    "CFBundleDisplayName": "鹰角启动器",
+    "CFBundleName": "鹰角启动器",
     "CFBundleIdentifier": "local.zmdmac.endfield",
     "CFBundleExecutable": "Endfield",
     "CFBundleInfoDictionaryVersion": "6.0",
