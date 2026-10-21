@@ -32,7 +32,8 @@ class ReleaseTests(unittest.TestCase):
             (self.directory / (name + ".sha256")).write_text(digest + "  " + name + "\n")
 
     def test_preflight(self):
-        self.assertEqual(len(publisher.verify("v0.5.0", self.directory)[0]), 8)
+        self.assertEqual([p.name for p in publisher.verify("v0.5.0", self.directory)[0]],
+                         ["zmd-mac-macos-arm64.pkg", "zmd-mac-macos-arm64.zip", "third-party-sources.tar.gz"])
         self.assertTrue(publisher.verify("v0.5.0-rc.1", self.directory)[1])
         for tag in ("main", "v0.6.0", "v0.5.0;echo"):
             with self.assertRaises(ValueError):
@@ -74,6 +75,8 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn("--draft", commands[1])
         self.assertIn("--latest=false", commands[-1])
         self.assertIn("--prerelease=true", commands[-1])
+        upload = next(command for command in commands if command[2] == "upload")
+        self.assertFalse(any(item.endswith(".sha256") or item.endswith("zmd-mac-source.zip") for item in upload))
         commands, error = self.simulate(existing={"isDraft": True, "targetCommitish": "abc123"})
         self.assertIsNone(error)
         self.assertNotIn("create", [command[2] for command in commands])

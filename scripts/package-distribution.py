@@ -80,7 +80,7 @@ def build(args):
             "CFBundleDevelopmentRegion": "zh_CN", "CFBundleDisplayName": "终末地",
             "CFBundleName": "终末地", "CFBundleIdentifier": "local.zmdmac.endfield.template",
             "CFBundleExecutable": "Endfield", "CFBundlePackageType": "APPL",
-            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.0",
+            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.1",
             "CFBundleVersion": "5", "LSMinimumSystemVersion": "27.0",
             "LSMultipleInstancesProhibited": True, "NSHighResolutionCapable": True,
             "LSUIElement": True,

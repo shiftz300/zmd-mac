@@ -11,7 +11,7 @@ import subprocess
 import zipfile
 
 ASSETS = ("zmd-mac-macos-arm64.pkg", "zmd-mac-macos-arm64.zip",
-          "zmd-mac-source.zip", "third-party-sources.tar.gz")
+          "third-party-sources.tar.gz")
 
 
 def verify(tag, directory):
@@ -30,7 +30,7 @@ def verify(tag, directory):
                 expected.update(chunk)
         if checksum.is_symlink() or checksum.read_text().strip() != expected.hexdigest() + "  " + name:
             raise ValueError(f"Checksum mismatch: {name}")
-        files += [asset, checksum]
+        files.append(asset)
     with zipfile.ZipFile(directory / "zmd-mac-macos-arm64.zip") as archive:
         metadata = plistlib.loads(archive.read("zmd-mac/payload/AppTemplate.app/Contents/Info.plist"))
     if metadata.get("CFBundleShortVersionString") != match[1]:
@@ -41,7 +41,7 @@ def verify(tag, directory):
 def publish(tag, directory, check_only=False):
     files, prerelease = verify(tag, directory)
     if check_only:
-        print("PASS: all 8 release assets and the packaged version verified")
+        print(f"PASS: all {len(files)} release assets, checksums and the packaged version verified")
         return
     repository = os.environ["GITHUB_REPOSITORY"]
     commit = os.environ["GITHUB_SHA"]
@@ -56,7 +56,7 @@ def publish(tag, directory, check_only=False):
         arguments = ["create", tag, "--repo", repository, "--verify-tag", "--target", commit,
                      "--title", "zmd-mac " + tag, "--draft", "--generate-notes",
                      "--notes", "Apple Silicon / macOS 27 / Rosetta 2。PKG 可选择国服或 Global。\n"
-                     "包含 CLI、项目源码及第三方源码；安装包尚未进行 Developer ID 公证。"]
+                     "PKG 用于图形安装，ZIP 用于命令行安装。附第三方源码；安装包尚未进行 Developer ID 公证。"]
         if prerelease:
             arguments.append("--prerelease")
         subprocess.run(command + arguments, check=True)

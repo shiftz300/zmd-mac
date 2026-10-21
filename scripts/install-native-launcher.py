@@ -51,7 +51,7 @@ for source, target in (
     temporary.chmod(0o755)
     temporary.replace(target)
 metadata = plistlib.loads((CONTENTS / "Info.plist").read_bytes())
-metadata["CFBundleShortVersionString"] = "0.5.0"
+metadata["CFBundleShortVersionString"] = "0.5.1"
 metadata["CFBundleVersion"] = "5"
 metadata["LSMultipleInstancesProhibited"] = True
 metadata["LSUIElement"] = True
