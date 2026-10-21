@@ -32,6 +32,11 @@ with tempfile.TemporaryDirectory(prefix="session-", dir=build) as temporary:
     (contents / "MacOS/launch.sh").write_text('''#!/bin/bash
 set -eu
 support="$(cd "$(dirname "$0")/../SharedSupport" && pwd)"
+if [ -f "$support/ready" ]; then
+    touch "$support/restarted"
+    while [ ! -f "$support/session-ended" ]; do sleep 0.1; done
+    exit 0
+fi
 touch "$support/ready"
 while [ ! -f "$support/session-ended" ]; do
     if [ -f "$support/game-ended" ] && [ -f "$support/launcher-ended" ]; then exit 0; fi
@@ -46,7 +51,7 @@ done
         "CFBundlePackageType": "APPL", "CFBundleName": "ZMD session fixture", "LSUIElement": True,
     }))
     try:
-        subprocess.run([str(build / "check"), str(app)], check=True, timeout=90)
+        subprocess.run([str(build / "check"), str(app)], check=True, timeout=150)
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
         saved = build / ("failure-" + Path(temporary).name)
         shutil.copytree(support, saved)

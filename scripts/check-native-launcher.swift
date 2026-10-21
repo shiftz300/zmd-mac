@@ -60,12 +60,12 @@ func check(_ scenario: String) throws {
         fixtures.append(app)
         return app
     }
-    for name in ["ready", "session-ended", "game-ready", "game-request", "game-ended",
+    for name in ["ready", "restarted", "session-ended", "game-ready", "game-request", "game-ended",
                  "launcher-ready", "launcher-request", "launcher-ended", "launcher-wrong-order",
                  "foreign-ready", "foreign-request", "foreign-ended"] {
         try? manager.removeItem(at: file(name))
     }
-    try scenario.write(to: file("scenario"), atomically: true, encoding: .utf8)
+    try (scenario == "restart-refuse" ? "refuse" : scenario).write(to: file("scenario"), atomically: true, encoding: .utf8)
     let foreign = try start(client, ["Endfield.exe", "--support", support.path, "--kind", "foreign"], prefix: file("other-prefix"))
     let game = try start(client, ["Endfield.exe", "--support", support.path, "--kind", "game"], prefix: file("prefix"))
     let launcher = try start(client, ["Games.exe", "--support", support.path, "--kind", "launcher"], prefix: file("prefix"))
@@ -81,11 +81,17 @@ func check(_ scenario: String) throws {
         guard wait(5, until: { game.isTerminated }) else { throw TestFailure("Fixture game did not exit.") }
         _ = launcher.terminate()
     } else {
-        guard wrapper.terminate() else { throw TestFailure("Wrapper rejected the quit event.") }
+        if scenario.hasPrefix("restart") {
+            DistributedNotificationCenter.default().postNotificationName(
+                NSNotification.Name("local.zmdmac.TestRestart"), object: bundle.path,
+                userInfo: nil, deliverImmediately: true)
+        } else {
+            guard wrapper.terminate() else { throw TestFailure("Wrapper rejected the quit event.") }
+        }
         guard wait(8, until: { manager.fileExists(atPath: file("game-request").path) }) else {
             throw TestFailure("Native quit did not reach the game fixture.")
         }
-        if scenario == "refuse" {
+        if scenario == "refuse" || scenario == "restart-refuse" {
             // Cross the production deadline: no timer may force or show a dialog.
             _ = wait(16, until: { false })
             guard !game.isTerminated && !launcher.isTerminated && !wrapper.isTerminated,
@@ -93,8 +99,21 @@ func check(_ scenario: String) throws {
                 throw TestFailure("Refusal did not preserve the session.")
             }
             try "quit".write(to: file("scenario"), atomically: true, encoding: .utf8)
-            guard wrapper.terminate() else { throw TestFailure("Could not retry a cancelled quit.") }
+            if scenario == "restart-refuse" {
+                _ = game.terminate()
+                guard wait(5, until: { game.isTerminated }) else { throw TestFailure("Fixture game did not exit.") }
+                _ = launcher.terminate()
+            } else {
+                guard wrapper.terminate() else { throw TestFailure("Could not retry a cancelled quit.") }
+            }
         }
+    }
+    if scenario == "restart" {
+        guard wait(10, until: { manager.fileExists(atPath: file("restarted").path) }),
+              game.isTerminated, launcher.isTerminated, !wrapper.isTerminated else {
+            throw TestFailure("Restart did not wait for the old session to finish.")
+        }
+        try Data().write(to: file("session-ended"))
     }
     guard wait(10, until: { game.isTerminated && launcher.isTerminated && wrapper.isTerminated }) else {
         throw TestFailure("Session failed to finish: game=\(game.isTerminated), launcher=\(launcher.isTerminated), wrapper=\(wrapper.isTerminated)")
@@ -105,10 +124,13 @@ func check(_ scenario: String) throws {
     guard !foreign.isTerminated && !manager.fileExists(atPath: file("foreign-request").path) else {
         throw TestFailure("Quit escaped to another Wine prefix sharing the runtime.")
     }
+    if scenario == "restart-refuse" && manager.fileExists(atPath: file("restarted").path) {
+        throw TestFailure("A cancelled restart was unexpectedly resumed.")
+    }
     print("\(scenario): PASS (native quit, game before launcher, other prefix preserved)")
 }
 do {
-    for scenario in ["quit", "slow", "refuse", "natural-exit"] { try check(scenario) }
+    for scenario in ["quit", "slow", "refuse", "natural-exit", "restart", "restart-refuse"] { try check(scenario) }
 } catch {
     fputs("FAIL: \(error)\n", stderr)
     exit(1)

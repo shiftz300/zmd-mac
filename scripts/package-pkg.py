@@ -11,7 +11,7 @@ import xml.etree.ElementTree as ET
 
 PROJECT = Path(__file__).resolve().parents[1]
 INSTALL_ROOT = "/Library/Application Support/zmd-mac"
-VERSION = "0.5.4"
+VERSION = "0.5.5"
 
 
 def build(distribution, output):

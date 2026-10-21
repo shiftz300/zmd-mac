@@ -80,6 +80,10 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
     private var requested: [NSRunningApplication] = []
     private var sessionID = UUID().uuidString
     private var settings: SettingsWindowController?
+    private var statusTimer: Timer?
+    private var launcherSeen = false
+    private var terminalStatus: LauncherStatus?
+    private var restartPending = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if CommandLine.arguments.contains("--attach") {
@@ -105,16 +109,32 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         applicationItem.submenu = applicationMenu
         menu.addItem(applicationItem)
         NSApp.mainMenu = menu
+        #if LIFECYCLE_TEST
+        DistributedNotificationCenter.default().addObserver(
+            self, selector: #selector(requestRestart), name: NSNotification.Name("local.zmdmac.TestRestart"),
+            object: Bundle.main.bundleURL.path, suspensionBehavior: .deliverImmediately)
+        #endif
+        startSession(attach: CommandLine.arguments.contains("--attach"))
+    }
+
+    private func startSession(attach: Bool = false) {
+        finished = false
+        quitting = false
+        restartPending = false
+        launcherSeen = false
+        terminalStatus = nil
+        requested.removeAll()
+        try? log?.close()
         do {
             let logs = support.appendingPathComponent("logs")
             try FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
-            let file = logs.appendingPathComponent("native-launcher-\(Int(Date().timeIntervalSince1970)).log")
+            let file = logs.appendingPathComponent("native-launcher-\(UUID().uuidString).log")
             guard FileManager.default.createFile(atPath: file.path, contents: nil) else {
                 throw CocoaError(.fileWriteUnknown)
             }
             log = try FileHandle(forWritingTo: file)
             var arguments = [contents.appendingPathComponent("MacOS/launch.sh").path]
-            if CommandLine.arguments.contains("--attach") { arguments.append("--attach") }
+            if attach { arguments.append("--attach") }
             let process = Process()
             process.executableURL = URL(fileURLWithPath: "/bin/bash")
             process.arguments = arguments
@@ -131,19 +151,51 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
                 DispatchQueue.main.async { self?.launcherFinished(status: process.terminationStatus) }
             }
             launcher = process
+            settings?.setLauncherStatus(.starting)
             try process.run()
+            let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+                guard let self, self.settings?.window?.isVisible == true else { return }
+                self.refreshLauncherStatus()
+            }
+            statusTimer = timer
+            RunLoop.main.add(timer, forMode: .common)
             let preference = try? String(contentsOf: support.appendingPathComponent("settings-window.conf"), encoding: .utf8)
             if preference?.trimmingCharacters(in: .whitespacesAndNewlines) != "off" { showSettings() }
         } catch {
             finished = true
+            terminalStatus = .failed
+            refreshLauncherStatus()
             showError("无法打开官方启动器", detail: error.localizedDescription)
             NSApp.terminate(nil)
         }
     }
 
     @objc private func showSettings() {
-        if settings == nil { settings = SettingsWindowController(appURL: Bundle.main.bundleURL) }
+        if settings == nil {
+            settings = SettingsWindowController(appURL: Bundle.main.bundleURL)
+            settings?.restartRequested = { [weak self] in self?.requestRestart() }
+        }
+        refreshLauncherStatus()
         settings?.present()
+    }
+
+    @objc private func requestRestart() {
+        guard !quitting && !finished else { return }
+        restartPending = true
+        beginQuit()
+    }
+
+    private func refreshLauncherStatus() {
+        guard let settings else { return }
+        if let terminalStatus { settings.setLauncherStatus(terminalStatus); return }
+        if quitting { settings.setLauncherStatus(.stopping); return }
+        let apps = sessionApplications().filter { $0.sessionID == nil || $0.sessionID == sessionID }
+        let hasLauncher = apps.contains(where: \.isLauncher)
+        launcherSeen = launcherSeen || hasLauncher
+        if apps.contains(where: \.isGame) { settings.setLauncherStatus(.gameRunning) }
+        else if hasLauncher { settings.setLauncherStatus(.running) }
+        else if launcher?.isRunning == true && !launcherSeen { settings.setLauncherStatus(.starting) }
+        else { settings.setLauncherStatus(.stopped) }
     }
 
     @objc private func sessionSettingsRequested(_ notification: Notification) {
@@ -183,12 +235,22 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
                   $0.app.processIdentifier == pid.int32Value && $0.sessionID == sessionID
               }) else { return }
         record("Dock quit received: pid=\(pid)")
+        restartPending = false
         beginQuit()
     }
 
     private func launcherFinished(status: Int32) {
         finished = true
         quitTimer?.invalidate()
+        statusTimer?.invalidate()
+        if restartPending {
+            // launch.sh waits for this prefix's Wine server, so the previous
+            // game and launcher are gone before starting a new official session.
+            startSession()
+            return
+        }
+        terminalStatus = status != 0 && !quitting ? .failed : .stopped
+        refreshLauncherStatus()
         if status != 0 && !quitting {
             showError("启动器已结束", detail: "退出代码：\(status)。日志保存在应用内的 Contents/SharedSupport/logs。")
         }
@@ -196,6 +258,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        restartPending = false
         if finished || launcher?.isRunning != true { return .terminateNow }
         beginQuit()
         // The hidden coordinator remains alive until its child session exits.
@@ -207,6 +270,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
     private func beginQuit() {
         guard !quitting && !finished else { return }
         quitting = true
+        refreshLauncherStatus()
         record("Session quit started")
         requested.removeAll()
         quitDeadline = Date().addingTimeInterval(15)
@@ -257,6 +321,8 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
     private func cancelQuit(_ message: String) {
         quitTimer?.invalidate()
         quitting = false
+        restartPending = false
+        refreshLauncherStatus()
         requested.removeAll()
         record(message)
     }

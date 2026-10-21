@@ -1,5 +1,22 @@
 import AppKit
 
+enum LauncherStatus: Equatable {
+    case starting, running, gameRunning, stopping, stopped, failed
+
+    var title: String {
+        switch self {
+        case .starting: return "正在启动启动器…"
+        case .running: return "启动器已运行"
+        case .gameRunning: return "游戏运行中"
+        case .stopping: return "正在退出…"
+        case .stopped: return "启动器未运行"
+        case .failed: return "启动器启动或运行失败"
+        }
+    }
+
+    var busy: Bool { self == .starting || self == .stopping }
+}
+
 /// A modeless AppKit window. It edits the same files as `zmd configure` and
 /// never launches, stops or reconfigures a running Wine process.
 final class SettingsWindowController: NSWindowController, NSWindowDelegate {
@@ -12,6 +29,10 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let hud = NSButton(checkboxWithTitle: "显示 Metal 性能面板", target: nil, action: nil)
     private let startup = NSButton(checkboxWithTitle: "打开启动器时显示设置", target: nil, action: nil)
     private let message = NSTextField(wrappingLabelWithString: "")
+    private let launcherStatus = NSTextField(labelWithString: "")
+    private let statusSpinner = NSProgressIndicator()
+    private let statusIcon = NSImageView()
+    private var displayedStatus: LauncherStatus?
     private let dxmtLog = NSPopUpButton()
     private let wineLog = NSPopUpButton()
     private let shaderCache = NSButton(checkboxWithTitle: "启用 DXMT 着色器缓存", target: nil, action: nil)
@@ -19,10 +40,11 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     private let shaderValidation = NSButton(checkboxWithTitle: "Metal 着色器校验", target: nil, action: nil)
     private var loaded: [String: String] = [:]
     var didClose: (() -> Void)?
+    var restartRequested: (() -> Void)?
 
     init(appURL: URL) {
         self.appURL = appURL
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 460),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 500, height: 420),
                               styleMask: [.titled, .closable], backing: .buffered, defer: false)
         window.title = "运行设置"
         window.isReleasedWhenClosed = false
@@ -57,7 +79,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         let grid = NSGridView(views: rows)
         grid.translatesAutoresizingMaskIntoConstraints = false
         grid.columnSpacing = 14
-        grid.rowSpacing = 16
+        grid.rowSpacing = 14
         grid.column(at: 0).width = 102
         grid.column(at: 0).xPlacement = .leading
         grid.column(at: 1).xPlacement = .fill
@@ -72,8 +94,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     private func buildContents() {
         guard let content = window?.contentView else { return }
-        let title = label("运行设置")
-        title.font = .systemFont(ofSize: 20, weight: .semibold)
         populate(renderer, [("Vulkan · MoltenVK", "vulkan"),
                             ("DirectX 11 · DXMT", "dxmt"),
                             ("DirectX 11 · DXMT + MetalFX", "dxmt-metalfx")])
@@ -119,7 +139,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         ])
         tabs.addTabViewItem(runtimeTab)
         tabs.addTabViewItem(debugTab)
-        tabs.heightAnchor.constraint(equalToConstant: 260).isActive = true
+        tabs.heightAnchor.constraint(equalToConstant: 268).isActive = true
         message.font = .systemFont(ofSize: 12)
         message.textColor = .secondaryLabelColor
         message.setAccessibilityIdentifier("settings-result")
@@ -132,10 +152,24 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         close.keyEquivalent = "\u{1b}"
         let spacer = NSView()
         spacer.setContentHuggingPriority(.init(1), for: .horizontal)
-        let buttons = NSStackView(views: [spacer, close, save])
+        launcherStatus.font = .systemFont(ofSize: 12)
+        launcherStatus.setAccessibilityIdentifier("launcher-status")
+        statusSpinner.style = .spinning
+        statusSpinner.controlSize = .small
+        statusSpinner.isDisplayedWhenStopped = false
+        for indicator in [statusSpinner as NSView, statusIcon] {
+            indicator.widthAnchor.constraint(equalToConstant: 14).isActive = true
+            indicator.heightAnchor.constraint(equalToConstant: 14).isActive = true
+        }
+        let status = NSStackView(views: [statusSpinner, statusIcon, launcherStatus])
+        status.orientation = .horizontal
+        status.alignment = .centerY
+        status.spacing = 6
+        let buttons = NSStackView(views: [status, spacer, close, save])
         buttons.orientation = .horizontal
+        buttons.alignment = .centerY
         buttons.spacing = 8
-        let stack = NSStackView(views: [title, tabs, startup, message, buttons])
+        let stack = NSStackView(views: [tabs, startup, message, buttons])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
@@ -144,13 +178,29 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 24),
             stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -24),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 22),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 16),
             stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -18),
             tabs.widthAnchor.constraint(equalTo: stack.widthAnchor),
             message.widthAnchor.constraint(equalTo: stack.widthAnchor),
             buttons.widthAnchor.constraint(equalTo: stack.widthAnchor),
         ])
-        window?.setContentSize(NSSize(width: 500, height: 460))
+        window?.setContentSize(NSSize(width: 500, height: 420))
+        setLauncherStatus(.stopped)
+    }
+
+    func setLauncherStatus(_ status: LauncherStatus) {
+        guard displayedStatus != status else { return }
+        displayedStatus = status
+        launcherStatus.stringValue = status.title
+        launcherStatus.textColor = status == .failed ? .systemRed : .secondaryLabelColor
+        statusSpinner.isHidden = !status.busy
+        statusIcon.isHidden = status.busy
+        if status.busy { statusSpinner.startAnimation(nil) }
+        else { statusSpinner.stopAnimation(nil) }
+        let active = status == .running || status == .gameRunning
+        let symbol = status == .failed ? "exclamationmark.circle.fill" : (active ? "checkmark.circle.fill" : "circle")
+        statusIcon.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        statusIcon.contentTintColor = status == .failed ? .systemRed : (active ? .systemGreen : .secondaryLabelColor)
     }
 
     func present() {
@@ -237,6 +287,16 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             loaded.merge(values) { _, new in new }
             message.textColor = .secondaryLabelColor
             message.stringValue = changes.isEmpty ? "配置没有变化。" : "已保存，重启游戏会话后生效。"
+            if !changes.isEmpty, restartRequested != nil, let window {
+                let alert = NSAlert()
+                alert.messageText = "设置已保存，立即重启？"
+                alert.informativeText = "将正常退出游戏并重开官方启动器，随后可点击「开始游戏」。取消会保留设置，下次启动生效。"
+                alert.addButton(withTitle: "重启启动器")
+                alert.addButton(withTitle: "取消")
+                alert.beginSheetModal(for: window) { [weak self] response in
+                    if response == .alertFirstButtonReturn { self?.restartRequested?() }
+                }
+            }
         } catch { showFailure(error) }
     }
 

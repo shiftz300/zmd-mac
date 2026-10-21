@@ -124,13 +124,13 @@ CI 将其作为 `third-party-source-inputs` artifact 上传。该脚本与完整
 ## 自动 GitHub Release
 
 推送 `v主版本.次版本.修订号` 标签后，`Build` 会自动完成构建和校验，再发布 GitHub Release。
-例如 `v0.5.4` 为正式版，`v0.5.4-rc.1` 为预发布版；预发布版不会标记为 Latest。
+例如 `v0.5.5` 为正式版，`v0.5.5-rc.1` 为预发布版；预发布版不会标记为 Latest。
 标签的数字版本必须与安装包中的应用版本一致。更新版本时同步修改
 `package-distribution.py`、`package-pkg.py`、`install-native-launcher.py` 的版本字段。
 
 ```sh
-git tag -a v0.5.4 -m "Release v0.5.4"
-git push origin v0.5.4
+git tag -a v0.5.5 -m "Release v0.5.5"
+git push origin v0.5.5
 ```
 
 发布附件为 PKG、CLI ZIP 和第三方源码 tar.gz。项目源码使用 GitHub 自带的下载入口；
@@ -145,6 +145,6 @@ SHA-256 文件仅供 CI 发布前校验，不上传到 Release。第三方源码
 本地验证发布附件（不会连接 GitHub）：
 
 ```sh
-python3 scripts/publish-release.py --tag v0.5.4 --directory release --check-only
+python3 scripts/publish-release.py --tag v0.5.5 --directory release --check-only
 python3 scripts/test-release.py
 ```
