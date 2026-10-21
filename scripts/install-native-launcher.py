@@ -51,10 +51,10 @@ for source, target in (
     temporary.chmod(0o755)
     temporary.replace(target)
 metadata = plistlib.loads((CONTENTS / "Info.plist").read_bytes())
-metadata["CFBundleShortVersionString"] = "0.5.1"
+metadata["CFBundleShortVersionString"] = "0.5.2"
 metadata["CFBundleVersion"] = "5"
 metadata["LSMultipleInstancesProhibited"] = True
-metadata["LSUIElement"] = True
+metadata["LSUIElement"] = False
 temporary = CONTENTS / "Info.plist.new"
 temporary.write_bytes(plistlib.dumps(metadata))
 temporary.replace(CONTENTS / "Info.plist")
@@ -62,5 +62,7 @@ temporary.replace(CONTENTS / "Info.plist")
 # Verify the executable only: this local bundle intentionally contains mutable
 # game data and is not signed with a sealed bundle resource envelope.
 subprocess.run(["codesign", "--verify", "--ignore-resources", str(ENTRY)], check=True)
+subprocess.run(["/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
+                "-f", str(APP)], check=True)
 print(f"Native launch/quit entry installed: {APP}")
 print(f"Previous entry saved: {backup}")

@@ -80,10 +80,11 @@ def build(args):
             "CFBundleDevelopmentRegion": "zh_CN", "CFBundleDisplayName": "终末地",
             "CFBundleName": "终末地", "CFBundleIdentifier": "local.zmdmac.endfield.template",
             "CFBundleExecutable": "Endfield", "CFBundlePackageType": "APPL",
-            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.1",
+            "CFBundleInfoDictionaryVersion": "6.0", "CFBundleShortVersionString": "0.5.2",
             "CFBundleVersion": "5", "LSMinimumSystemVersion": "27.0",
             "LSMultipleInstancesProhibited": True, "NSHighResolutionCapable": True,
-            "LSUIElement": True,
+            # Discoverable app on disk; the native entry uses accessory mode at runtime.
+            "LSUIElement": False,
         }
         (contents / "Info.plist").write_bytes(plistlib.dumps(metadata))
         copy_tree(runtime, payload / "runtime")

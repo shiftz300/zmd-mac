@@ -1,4 +1,5 @@
 import AppKit
+import CoreServices
 import Foundation
 
 let manager = FileManager.default
@@ -254,6 +255,10 @@ func install(_ args: [String: String]) throws {
     prefixStarted = false
     try check(!manager.fileExists(atPath: output.path), "安装期间目标路径被占用，未覆盖。")
     try manager.moveItem(at: app, to: output)
+    let registration = LSRegisterURL(output as CFURL, true)
+    if registration != noErr {
+        print("应用已安装；系统应用列表注册失败（\(registration)），可在 Finder 中打开应用后重试。")
+    }
     print("[5/5] 完成：\(output.path)")
     if args["--desktop"] != nil {
         let alias = manager.homeDirectoryForCurrentUser.appendingPathComponent("Desktop").appendingPathComponent(output.lastPathComponent)

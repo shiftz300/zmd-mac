@@ -27,7 +27,7 @@ with tempfile.TemporaryDirectory(prefix="session-", dir=build) as temporary:
     (contents / "Info.plist").write_bytes(plistlib.dumps({
         "CFBundleExecutable": "Endfield", "CFBundleIdentifier": "local.zmdmac.endfield.lifecycle-test",
         "CFBundlePackageType": "APPL", "CFBundleName": "ZMD lifecycle test",
-        "LSUIElement": True,
+        "LSUIElement": False,
     }))
     (contents / "MacOS/launch.sh").write_text('''#!/bin/bash
 set -eu

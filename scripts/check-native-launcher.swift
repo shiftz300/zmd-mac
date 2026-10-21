@@ -70,6 +70,9 @@ func check(_ scenario: String) throws {
     let game = try start(client, ["Endfield.exe", "--support", support.path, "--kind", "game"], prefix: file("prefix"))
     let launcher = try start(client, ["Games.exe", "--support", support.path, "--kind", "launcher"], prefix: file("prefix"))
     let wrapper = try start(bundle)
+    guard wait(10, until: { wrapper.activationPolicy == .accessory }) else {
+        throw TestFailure("Discoverable wrapper did not hide its extra Dock icon at runtime.")
+    }
     guard wait(10, until: { ["game-ready", "launcher-ready", "foreign-ready", "ready"].allSatisfy { manager.fileExists(atPath: file($0).path) } }) else {
         throw TestFailure("Fixture did not become ready.")
     }
