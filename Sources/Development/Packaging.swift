@@ -32,7 +32,7 @@ func appMetadata(template: Bool) -> [String: Any] {
     "CFBundleDevelopmentRegion": "zh_CN", "CFBundleDisplayName": "鹰角启动器", "CFBundleName": "鹰角启动器",
     "CFBundleIdentifier": "local.zmdmac.endfield.template", "CFBundleExecutable": "Endfield",
     "CFBundlePackageType": "APPL", "CFBundleInfoDictionaryVersion": "6.0",
-    "CFBundleShortVersionString": version, "CFBundleVersion": "8", "LSMinimumSystemVersion": "27.0",
+    "CFBundleShortVersionString": version, "CFBundleVersion": "9", "LSMinimumSystemVersion": "27.0",
     "LSMultipleInstancesProhibited": true, "NSHighResolutionCapable": true, "LSUIElement": template,
   ]
 }
@@ -222,7 +222,7 @@ func updateApp(_ app: URL) throws {
   try copy(project.at("Resources/prefix-settings.reg"), support.at("prefix-settings.reg"))
   var metadata = try plist(contents.at("Info.plist"))
   metadata["CFBundleShortVersionString"] = version
-  metadata["CFBundleVersion"] = "8"
+  metadata["CFBundleVersion"] = "9"
   metadata["CFBundleName"] = app.deletingPathExtension().lastPathComponent
   metadata["CFBundleDisplayName"] = metadata["CFBundleName"]
   metadata["LSMultipleInstancesProhibited"] = true

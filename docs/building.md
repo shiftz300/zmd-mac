@@ -61,7 +61,7 @@ swift run zmd-dev update-app --app "$HOME/Applications/鹰角启动器.app"
 
 ## 图形后端
 
-默认构建包含稳定版 MoltenVK、KosmicKrisp 实验后端和独立 DXMT + MetalFX；仍默认使用 MoltenVK。
+默认构建包含稳定版 MoltenVK、KosmicKrisp 实验后端和独立 DXMT + MetalFX；新安装默认使用 KosmicKrisp。
 MetalFX 基于锁定的 DXMT 0.80，回移 NGX #235 并补充 NVAPI 逻辑 GPU 查询。
 源码、补丁和编译器输入均有锁定哈希，不链接 NVIDIA 驱动库，不打包游戏签名 DLL。
 

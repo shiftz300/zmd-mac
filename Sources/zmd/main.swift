@@ -145,6 +145,7 @@ func install(_ args: [String: String]) throws {
     let region = try GameRegion.parse(args["--region"] ?? "cn")
     let officialURL = region.installerURL
     try validateConfiguration(args)
+    let selectedRenderer = args["--renderer"] ?? "kosmickrisp"
     let output = optionPath(args["--output"] ?? "~/Applications/\(region.appName).app")
     if args["--output"] == nil {
         let legacy = optionPath("~/Applications/\(region.legacyAppName).app")
@@ -219,7 +220,7 @@ func install(_ args: [String: String]) throws {
     var environment = ProcessInfo.processInfo.environment
     environment["ZMD_PREFIX"] = prefix.path
     environment["WINEPREFIX"] = prefix.path
-    environment["ZMD_RENDERER"] = args["--renderer"] ?? "vulkan"
+    environment["ZMD_RENDERER"] = selectedRenderer
     let wine = WineRuntime(support: support, inherited: environment)
     let server = support.appendingPathComponent("runtime/wine/bin/wineserver").path
     // The prefix is newly created and never contains a user's existing game.
@@ -243,7 +244,7 @@ func install(_ args: [String: String]) throws {
         "retrieved": ISO8601DateFormatter().string(from: Date())]
     try JSONSerialization.data(withJSONObject: origin, options: [.prettyPrinted, .sortedKeys])
         .write(to: destination.appendingPathComponent("download-origin.json"))
-    try configure(app, ["--renderer": args["--renderer"] ?? "vulkan", "--window": args["--window"] ?? "windowed"])
+    try configure(app, ["--renderer": selectedRenderer, "--window": args["--window"] ?? "windowed"])
     try installIcon(app, version, log: log)
     let plistURL = app.appendingPathComponent("Contents/Info.plist")
     var plist = try PropertyListSerialization.propertyList(from: Data(contentsOf: plistURL), format: nil) as! [String: Any]

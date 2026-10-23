@@ -7,8 +7,8 @@
 | 本地桌面集成 | 另加 `wine-session-dock.patch`，为当前包装会话提供中文进程名和 Dock 退出转发 |
 | CPU | x86_64 Wine 经 Rosetta 2，支持 i386 / x86_64 Windows 程序 |
 | 同步 | 默认 `WINEMSYNC=1`，`ROSETTA_ADVERTISE_AVX=1` |
-| 默认游戏路径 | 游戏 Vulkan → 修补版 MoltenVK 1.4.2 → Metal |
-| 实验 Vulkan 路径 | 游戏 Vulkan → Vulkan Loader → KosmicKrisp → Metal 4；`--renderer kosmickrisp` |
+| 默认游戏路径 | 游戏 Vulkan → Vulkan Loader → KosmicKrisp → Metal 4；`--renderer kosmickrisp` |
+| 备用 Vulkan 路径 | 游戏 Vulkan → 修补版 MoltenVK 1.4.2 → Metal；`--renderer vulkan` |
 | 备用路径 | 游戏 Direct3D 11 → DXMT 0.80 → Metal |
 | MetalFX 试用路径 | `dxmt-metalfx`：DXMT 0.80 + 上游 #235 NGX 修复 + 本地 NVAPI 识别补丁，`DXMT_ENABLE_NVEXT=1`；游戏内选 DLSS |
 | 官方启动器 | DXMT 支持其 Direct3D 界面；由 `Launcher.exe` 调用版本目录内的 `Games.exe` |
@@ -17,7 +17,7 @@
 | 字体 | 使用 macOS 自带 Heiti SC，不分发字体 |
 | DLL 设置 | `winemenubuilder.exe=d;mscoree,mshtml=` |
 
-Vulkan 通过 `CX_LIBVULKAN` 指向应用内 MoltenVK。该 Wine 分支需要
+MoltenVK 模式通过 `CX_LIBVULKAN` 指向应用内 MoltenVK。该 Wine 分支需要
 `CX_ACTIVE_GRAPHICS_BACKEND=wined3d` 才使用这个库，名称不表示游戏在使用 OpenGL。
 这些图形路径均不依赖 D3DMetal 或 GPTK。
 `WINEDLLPATH` 明确指向应用自身的 Wine 模块目录，以启用本构建的具名加载器。
@@ -43,8 +43,12 @@ KosmicKrisp 使用 Sikarugir 20261017 的 x86_64 构建（Mesa `b23137f730fa`，
 二进制、构建配方及 Mesa 提交见 `kosmickrisp.lock.json`；源码归档与许可证一同保留。
 官方 SDK 的 arm64 KosmicKrisp 不能直接加载进当前 x86_64 Wine。
 
+新安装的国服和 Global 默认使用 KosmicKrisp；升级原生入口保留已保存的后端选择。
+KosmicKrisp 仍为实验构建，出现兼容问题可在「运行设置 → 图形后端」切回 MoltenVK。
+保存后选择重启启动器，再从官方启动器启动游戏；仅退出游戏不会更新启动器继承的加载环境。
+
 原生设置的「MoltenVK 版本」提供稳定版／实验版；「队列提交」提供默认（同步）／后台队列。
-两项仅对 MoltenVK 生效，切换后端时保留其选择；切回时不残留 KosmicKrisp 的驱动选择变量。
+两项仅在选择 MoltenVK 时显示，切换后端时保留其选择；切回时不残留 KosmicKrisp 的驱动选择变量。
 也可使用 `zmd configure --app 应用.app --renderer vulkan --moltenvk experimental --vulkan-queue default`。
 实验版单独安装到 `runtime/renderers/moltenvk-experimental`，未安装时拒绝保存该选项。
 未设置时始终使用稳定版和同步提交；实验库缺失时会报错，不静默换库。

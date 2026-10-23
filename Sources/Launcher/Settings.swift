@@ -27,6 +27,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
     private let retina = NSPopUpButton()
     private let moltenvk = NSPopUpButton()
     private let vulkanQueue = NSPopUpButton()
+    private var moltenvkRows: [NSGridRow] = []
     private let msync = NSButton(checkboxWithTitle: "启用 MSync", target: nil, action: nil)
     private let hud = NSButton(checkboxWithTitle: "显示 Metal 性能面板", target: nil, action: nil)
     private let startup = NSButton(checkboxWithTitle: "打开启动器时显示设置", target: nil, action: nil)
@@ -78,8 +79,12 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
     }
 
     private func pane(_ rows: [[NSView]]) -> NSView {
-        let view = NSView()
         let grid = NSGridView(views: rows)
+        return pane(grid)
+    }
+
+    private func pane(_ grid: NSGridView) -> NSView {
+        let view = NSView()
         grid.translatesAutoresizingMaskIntoConstraints = false
         grid.columnSpacing = 14
         grid.rowSpacing = 14
@@ -97,8 +102,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
 
     private func buildContents() {
         guard let content = window?.contentView else { return }
-        populate(renderer, [("Vulkan · MoltenVK", "vulkan"),
-                            ("Vulkan · KosmicKrisp（实验）", "kosmickrisp"),
+        populate(renderer, [("Vulkan · KosmicKrisp（实验）", "kosmickrisp"),
+                            ("Vulkan · MoltenVK", "vulkan"),
                             ("DirectX 11 · DXMT", "dxmt"),
                             ("DirectX 11 · DXMT + MetalFX", "dxmt-metalfx")])
         populate(windowMode, [("窗口化启动", "windowed"), ("无边框全屏启动", "fullscreen"), ("使用游戏设置", "game")])
@@ -138,11 +143,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         tabs.font = .systemFont(ofSize: 13)
         let runtimeTab = NSTabViewItem(identifier: "runtime")
         runtimeTab.label = "运行"
-        runtimeTab.view = pane([
+        let runtimeGrid = NSGridView(views: [
             [label("图形后端"), renderer], [label("MoltenVK 版本"), moltenvk],
             [label("队列提交"), vulkanQueue],
             [label("同步"), msync], [label("性能监测"), hud],
         ])
+        moltenvkRows = [runtimeGrid.row(at: 1), runtimeGrid.row(at: 2)]
+        runtimeTab.view = pane(runtimeGrid)
         let displayTab = NSTabViewItem(identifier: "display")
         displayTab.label = "显示"
         let readScreen = NSButton(title: "读取当前屏幕", target: self, action: #selector(readCurrentScreen))
@@ -300,6 +307,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
 
     private func updateVulkanControls() {
         let enabled = renderer.selectedItem?.representedObject as? String == "vulkan"
+        for row in moltenvkRows { row.isHidden = !enabled }
         moltenvk.isEnabled = enabled
         vulkanQueue.isEnabled = enabled
     }

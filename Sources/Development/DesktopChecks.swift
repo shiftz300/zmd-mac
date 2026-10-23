@@ -163,6 +163,9 @@ func testInstall(_ distribution: URL, cn: URL, global: URL) throws {
         app.path,
       ], timeout: 300)
     let meta = try plist(app.at("Contents/Info.plist"))
+    try require(try app.at("Contents/SharedSupport/renderer.conf").text
+      .trimmingCharacters(in: .whitespacesAndNewlines) == "kosmickrisp",
+      "New installation must default to KosmicKrisp")
     try require(
       !app.link && meta["CFBundleName"] as? String == name
         && meta["CFBundleDisplayName"] as? String == name && meta["LSUIElement"] as? Bool == false,
