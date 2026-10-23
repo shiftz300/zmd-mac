@@ -37,10 +37,10 @@ PKG 需要管理员授权和网络连接。安装包尚未公证，如被系统�
 
 ## 运行设置
 
-默认使用 **Vulkan、窗口模式和 MSync**。打开应用时会显示原生设置窗口，也可选择左上角应用菜单中的「运行设置…」，或按 **⌘,** 打开。
+默认使用 **Vulkan · MoltenVK、窗口模式和 MSync**。打开应用时会显示原生设置窗口，也可选择左上角应用菜单中的「运行设置…」，或按 **⌘,** 打开。
 窗口左下角实时显示启动器或游戏的运行状态；启动期间显示等待指示。
 
-- 切换 Vulkan / DXMT / DXMT + MetalFX、MSync 和 Metal 性能面板。
+- 切换 MoltenVK / KosmicKrisp（实验）/ DXMT / DXMT + MetalFX、MSync 和 Metal 性能面板。
 - 「显示」页设置窗口／无边框全屏、启动分辨率；支持预设、自定义和读取设置窗口所在屏幕的原生像素分辨率，不受 macOS 桌面缩放影响。默认使用游戏分辨率。
 - 「Retina 输出」默认自动：指定分辨率时开启，也可手动开关。它控制实际窗口像素密度，需要重启整个会话。
 - 调整 Vulkan 队列、日志和调试选项；装有实验库时可切换 MoltenVK 版本。
@@ -63,10 +63,15 @@ PKG 需要管理员授权和网络连接。安装包尚未公证，如被系统�
 
 # 恢复稳定版 Vulkan 和默认队列
 ./zmd configure --app "$HOME/Applications/鹰角启动器.app" --renderer vulkan --moltenvk stable --vulkan-queue default
+
+# 试用 KosmicKrisp（需重启整个游戏会话）
+./zmd configure --app "$HOME/Applications/鹰角启动器.app" --renderer kosmickrisp
 ```
 
 Vulkan 下部分场景的 FSR 可能出现黑纹，可改用 TAAU。DXMT + MetalFX 通过游戏的 DLSS 选项使用，不支持 DLSS 帧生成；实际性能因场景而异。
 MoltenVK 实验版需[单独构建](docs/building.md#可选-moltenvk-实验版)，默认安装包不包含。
+KosmicKrisp 实验后端随新安装包提供，默认不启用。在「运行 → 图形后端」切换；MoltenVK 版本和队列选项仅对 MoltenVK 生效。
+已通过 Wine 设备、窗口和呈现检查，终末地画面、FSR、插帧及性能尚待验证；遇到问题可切回 MoltenVK。
 
 游戏和登录状态保存在应用内部。备份时先退出，再复制整个应用；升级时不要直接覆盖已有应用。
 

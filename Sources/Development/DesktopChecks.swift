@@ -41,8 +41,8 @@ func testLifecycle() throws {
     throw error
   }
 }
-func testGraphics(vulkan: Bool, runtime: URL) throws {
-  let build = work.at(vulkan ? "build/vulkan-tests" : "build/display-tests")
+func testGraphics(vulkan: Bool, runtime: URL, kosmickrisp: Bool = false) throws {
+  let build = work.at(kosmickrisp ? "build/kosmickrisp-tests" : vulkan ? "build/vulkan-tests" : "build/display-tests")
   try mkdir(build)
   let compiler = work.at("tools/native/opt/mingw-w64/bin/x86_64-w64-mingw32-gcc")
   let fixture = build.at("probe.exe")
@@ -59,7 +59,7 @@ func testGraphics(vulkan: Bool, runtime: URL) throws {
   var environment = env
   environment["ZMD_PREFIX"] = support.at("prefix").path
   environment["WINEPREFIX"] = environment["ZMD_PREFIX"]
-  environment["ZMD_RENDERER"] = vulkan ? "vulkan" : "dxmt"
+  environment["ZMD_RENDERER"] = kosmickrisp ? "kosmickrisp" : vulkan ? "vulkan" : "dxmt"
   for key in ["MTL_HUD_ENABLED", "MTL_DEBUG_LAYER", "MTL_SHADER_VALIDATION"] {
     environment[key] = "0"
   }
@@ -70,8 +70,8 @@ func testGraphics(vulkan: Bool, runtime: URL) throws {
     _ = try? command([server, "-w"], environment: environment, timeout: 30)
   }
   var results: [[String: Any]] = []
-  for channel in vulkan ? ["stable", "experimental"] : ["stable"] {
-    for queue in vulkan ? ["default", "async"] : ["default"] {
+  for channel in kosmickrisp ? ["kosmickrisp"] : vulkan ? ["stable", "experimental"] : ["stable"] {
+    for queue in vulkan && !kosmickrisp ? ["default", "async"] : ["default"] {
       try write(channel + "\n", support.at("moltenvk.conf"))
       try write(queue + "\n", support.at("vulkan-queue.conf"))
       let log = build.at(channel + "-" + queue + ".log")
@@ -81,6 +81,9 @@ func testGraphics(vulkan: Bool, runtime: URL) throws {
         try require(
           try log.text.contains("Windowed surface, GPU clear and present: PASS"),
           "GPU probe failed; see \(log.path)")
+        if kosmickrisp {
+          try require(try log.text.contains("KosmicKrisp"), "Expected KosmicKrisp driver identity")
+        }
       } else {
         print(try log.text)
       }

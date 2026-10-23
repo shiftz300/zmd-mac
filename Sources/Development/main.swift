@@ -18,11 +18,11 @@ do {
   let values: [String: Set<String>] = [
     "bootstrap": [], "fetch": [], "wine": [], "runtime": [], "build": [], "test": [],
     "test-lifecycle": [], "help": [], "--help": [],
-    "moltenvk": ["--runtime"], "metalfx": ["--runtime"], "experimental": ["--runtime", "--jobs"],
+    "moltenvk": ["--runtime"], "kosmickrisp": ["--runtime"], "metalfx": ["--runtime"], "experimental": ["--runtime", "--jobs"],
     "package": ["--runtime", "--sevenzip", "--output"], "pkg": ["--distribution", "--output"],
     "sources": ["--runtime", "--output"], "release": ["--tag", "--directory"],
     "update-app": ["--app"],
-    "test-pkg": ["--package"], "test-display": ["--runtime"], "test-vulkan": ["--runtime"],
+    "test-pkg": ["--package"], "test-display": ["--runtime"], "test-vulkan": ["--runtime"], "test-kosmickrisp": ["--runtime"],
     "test-session": ["--runtime"], "test-resolution": ["--runtime"],
     "test-install": ["--distribution", "--cn-exe", "--global-exe"],
   ]
@@ -51,6 +51,7 @@ do {
   case "wine": try buildWine()
   case "runtime": try assembleRuntime()
   case "moltenvk": try installMoltenVK(pathOption("--runtime", work.at("runtime")))
+  case "kosmickrisp": try installKosmicKrisp(pathOption("--runtime", work.at("runtime")))
   case "metalfx": try buildMetalFX(pathOption("--runtime", work.at("runtime")))
   case "experimental":
     try buildExperimental(
@@ -87,6 +88,7 @@ do {
       try installMoltenVK(runtime)
       try buildMetalFX(runtime)
     }
+    try installKosmicKrisp(runtime)
     let sevenzip: URL
     if let existing = env["ZMD_SEVENZIP_SOURCE"] {
       sevenzip = URL(fileURLWithPath: existing)
@@ -103,9 +105,10 @@ do {
   case "test": try testQuick()
   case "test-pkg":
     try testPKG(pathOption("--package"), staticOnly: arguments.contains("--static-only"))
-  case "test-display", "test-vulkan":
+  case "test-display", "test-vulkan", "test-kosmickrisp":
     try testGraphics(
-      vulkan: arguments[0] == "test-vulkan", runtime: pathOption("--runtime", work.at("runtime")))
+      vulkan: arguments[0] != "test-display", runtime: pathOption("--runtime", work.at("runtime")),
+      kosmickrisp: arguments[0] == "test-kosmickrisp")
   case "test-lifecycle": try testLifecycle()
   case "test-session": try testWineSession(pathOption("--runtime", work.at("runtime")))
   case "test-resolution":
@@ -123,7 +126,8 @@ do {
       test-pkg --package FILE [--static-only]
       test-install --distribution DIR --cn-exe FILE --global-exe FILE
       build | bootstrap [--sevenzip-only] | fetch | wine | runtime
-      moltenvk | metalfx | experimental [--runtime DIR] [--jobs N]
+      moltenvk | kosmickrisp | metalfx | experimental [--runtime DIR] [--jobs N]
+      test-kosmickrisp [--runtime DIR]
       package [--runtime DIR] [--sevenzip DIR] [--output DIR]
       pkg [--distribution DIR] [--output FILE]
       sources [--runtime DIR] [--output FILE]

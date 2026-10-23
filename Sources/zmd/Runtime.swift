@@ -53,6 +53,8 @@ struct WineRuntime {
     for name in [
       "MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS", "DXMT_ENABLE_NVEXT", "CX_LIBVULKAN",
       "CX_ACTIVE_GRAPHICS_BACKEND",
+      "VK_DRIVER_FILES", "VK_ICD_FILENAMES", "VK_ADD_DRIVER_FILES",
+      "VK_LOADER_DRIVERS_SELECT", "VK_LOADER_DRIVERS_DISABLE", "VK_LOADER_SEARCH_ONLY_IN_BUNDLE",
     ] { env[name] = nil }
     var overrides = env["WINEDLLOVERRIDES"] ?? "winemenubuilder.exe=d;mscoree,mshtml="
     let selected =
@@ -80,6 +82,13 @@ struct WineRuntime {
       env["CX_LIBVULKAN"] = library.path
       env["CX_ACTIVE_GRAPHICS_BACKEND"] = "wined3d"
       env["MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS"] = queue == "default" ? "1" : "0"
+    case "kosmickrisp":
+      try checkKosmicKrisp(support: support)
+      let backend = runtime.appendingPathComponent("renderers/kosmickrisp")
+      env["CX_LIBVULKAN"] = backend.appendingPathComponent("libvulkan.1.dylib").path
+      env["CX_ACTIVE_GRAPHICS_BACKEND"] = "wined3d"
+      // Select only our bundled ICD, never a system-installed Vulkan driver.
+      env["VK_DRIVER_FILES"] = backend.appendingPathComponent("kosmickrisp_icd.json").path
     default: throw ZMDError("Unknown renderer: \(selected)")
     }
     env["WINEDLLPATH_PREPEND"] = env["WINEDLLPATH_DXMT"]
@@ -96,7 +105,7 @@ struct WineRuntime {
     try validateConfiguration([
       "--renderer": renderer, "--window": window, "--resolution": resolution,
     ])
-    var flags = renderer == "vulkan" ? "-force-vulkan" : "-force-d3d11"
+    var flags = ["vulkan", "kosmickrisp"].contains(renderer) ? "-force-vulkan" : "-force-d3d11"
     if window == "windowed" { flags += " -screen-fullscreen 0" }
     if window == "fullscreen" { flags += " -screen-fullscreen 1 -window-mode borderless" }
     if resolution != "game" {
@@ -261,7 +270,7 @@ struct GameResolutionEdit {
 /// Keep the signed NGX discovery entry in the prefix, never in the game directory.
 func prepareNGX(prefix: URL, mode: String) throws {
   let fm = FileManager.default
-  try check(["dxmt", "dxmt-metalfx", "vulkan"].contains(mode), "Unknown renderer")
+  try check(["dxmt", "dxmt-metalfx", "vulkan", "kosmickrisp"].contains(mode), "Unknown renderer")
   let state = prefix.appendingPathComponent(".zmd-metalfx-ngx")
   let target = prefix.appendingPathComponent("drive_c/windows/system32/nvngx.dll")
   var source = prefix.appendingPathComponent(

@@ -11,9 +11,9 @@ func help() {
     zmd-mac — 终末地 macOS 安装器
 
     zmd install [--exe 官方安装包.exe] [--output ~/Applications/鹰角启动器.app]
-                [--renderer vulkan|dxmt|dxmt-metalfx] [--window windowed|fullscreen|game]
+                [--renderer vulkan|kosmickrisp|dxmt|dxmt-metalfx] [--window windowed|fullscreen|game]
                 [--region cn|global] [--sha256 校验值] [--desktop]
-    zmd configure --app 应用.app [--renderer vulkan|dxmt|dxmt-metalfx]
+    zmd configure --app 应用.app [--renderer vulkan|kosmickrisp|dxmt|dxmt-metalfx]
                   [--moltenvk stable|experimental] [--vulkan-queue default|async]
                   [--window windowed|fullscreen|game] [--hud on|off] [--msync on|off]
                   [--settings-window on|off] [--resolution game|宽x高] [--retina auto|on|off]
@@ -106,6 +106,7 @@ func inspect(_ app: URL) throws {
         ("runtime", "runtime/provenance.json"),
         ("moltenvk", "runtime/renderers/moltenvk/provenance.json"),
         ("moltenvk_experimental", "runtime/renderers/moltenvk-experimental/provenance.json"),
+        ("kosmickrisp", "runtime/renderers/kosmickrisp/provenance.json"),
         ("dxmt_metalfx", "runtime/renderers/dxmt-metalfx/provenance.json"),
     ] {
         if let data = try? Data(contentsOf: support.appendingPathComponent(file)) {

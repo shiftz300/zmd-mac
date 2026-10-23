@@ -36,6 +36,9 @@ import Foundation
     runtime.inherited = [
       "DXMT_ENABLE_NVEXT": "1", "MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS": "garbage",
       "CX_LIBVULKAN": "stale",
+      "VK_ICD_FILENAMES": "stale", "VK_DRIVER_FILES": "stale", "VK_ADD_DRIVER_FILES": "stale",
+      "VK_LOADER_DRIVERS_SELECT": "stale", "VK_LOADER_DRIVERS_DISABLE": "stale",
+      "VK_LOADER_SEARCH_ONLY_IN_BUNDLE": "TRUE",
     ]
     try put("renderer.conf", "vulkan")
     for channel in ["stable", "experimental"] {
@@ -51,11 +54,31 @@ import Foundation
             && env["DXMT_ENABLE_NVEXT"] == nil, "Vulkan selection")
       }
     }
+    try put("renderer.conf", "kosmickrisp")
+    try expectFailure { _ = try runtime.environment() }
+    for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json"] {
+      try put("runtime/renderers/kosmickrisp/" + file, "fixture")
+    }
+    env = try runtime.environment()
+    try check(env["CX_LIBVULKAN"] == at("runtime/renderers/kosmickrisp/libvulkan.1.dylib").path
+      && env["VK_DRIVER_FILES"] == at("runtime/renderers/kosmickrisp/kosmickrisp_icd.json").path
+      && env["CX_ACTIVE_GRAPHICS_BACKEND"] == "wined3d"
+      && env["MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS"] == nil
+      && env["DXMT_ENABLE_NVEXT"] == nil, "KosmicKrisp loader and driver isolation")
+    try check(try runtime.gameArguments() == "-force-vulkan", "KosmicKrisp uses game Vulkan")
+    for key in ["VK_ICD_FILENAMES", "VK_ADD_DRIVER_FILES", "VK_LOADER_DRIVERS_SELECT",
+                "VK_LOADER_DRIVERS_DISABLE", "VK_LOADER_SEARCH_ONLY_IN_BUNDLE"] {
+      try check(env[key] == nil, "Inherited Vulkan driver selection leaked")
+    }
+    try put("renderer.conf", "vulkan")
+    env = try runtime.environment()
+    try check(env["VK_DRIVER_FILES"] == nil && env["CX_LIBVULKAN"]!.contains("libMoltenVK"),
+              "Switch back to MoltenVK")
     try put("renderer.conf", "dxmt")
     env = try runtime.environment()
     try check(
       env["MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS"] == nil && env["CX_LIBVULKAN"] == nil
-        && env["DXMT_ENABLE_NVEXT"] == nil, "Stale renderer variables")
+        && env["DXMT_ENABLE_NVEXT"] == nil && env["VK_DRIVER_FILES"] == nil, "Stale renderer variables")
     for (name, value) in [
       ("dxmt-log", "debug"), ("wine-log", "warnings"), ("shader-cache", "off"),
       ("metal-validation", "on"), ("shader-validation", "on"),

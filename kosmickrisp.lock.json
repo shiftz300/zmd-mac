@@ -1,0 +1,8 @@
+{
+  "version": "20261017",
+  "url": "https://github.com/Sikarugir-App/mesa-kosmickrisp/releases/download/20261017/kosmickrisp-x86_64.zip",
+  "sha256": "803803161852173f9228f7aa0bf488f5e461d706c1ced20a6431b74d8f34f39e",
+  "file": "kosmickrisp-20261017-x86_64.zip",
+  "build_commit": "52d87b35f3a4fc8aff5acb4daaa548c8ff7870f1",
+  "mesa_commit": "b23137f730fa90577bcfc7aa12c2a1fc1e49f1c7"
+}

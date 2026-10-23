@@ -192,7 +192,7 @@ func validateConfiguration(_ args: [String: String]) throws {
         }, "分辨率请填写 宽x高，每边为 320–16384 像素，或选择使用游戏设置。")
     }
     for (key, values) in [
-        "--renderer": ["vulkan", "dxmt", "dxmt-metalfx"], "--window": ["windowed", "fullscreen", "game"],
+        "--renderer": ["vulkan", "kosmickrisp", "dxmt", "dxmt-metalfx"], "--window": ["windowed", "fullscreen", "game"],
         "--moltenvk": ["stable", "experimental"], "--vulkan-queue": ["default", "async"],
         "--hud": ["on", "off"], "--msync": ["on", "off"], "--settings-window": ["on", "off"],
         "--dxmt-log": ["default", "error", "debug", "none"], "--wine-log": ["errors", "warnings", "off"],
@@ -222,9 +222,9 @@ func configure(_ app: URL, _ args: [String: String]) throws {
     try validateConfiguration(args)
     let support = try supportDirectory(app)
     let runtimeInterface = try? String(contentsOf: support.appendingPathComponent("runtime-interface"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
-    let native = ["1", "2"].contains(runtimeInterface ?? "")
+    let native = ["1", "2", "3"].contains(runtimeInterface ?? "")
     if args["--retina"] != nil {
-        try check(runtimeInterface == "2", "请先更新应用以支持 Retina 输出；配置未写入。")
+        try check(["2", "3"].contains(runtimeInterface ?? ""), "请先更新应用以支持 Retina 输出；配置未写入。")
     }
     let wrapper = native ? "" : try String(contentsOf: support.appendingPathComponent("scripts/wine.sh"), encoding: .utf8)
     if !native && (args["--resolution"] != nil || args["--window"] == "fullscreen") {
@@ -240,6 +240,10 @@ func configure(_ app: URL, _ args: [String: String]) throws {
         if args[option] != nil {
             try check(native || wrapper.contains(marker), "此应用的旧包装层不支持 \(option)，请先更新包装层；配置未写入。")
         }
+    }
+    if args["--renderer"] == "kosmickrisp" {
+        try check(runtimeInterface == "3", "请先更新应用以支持 KosmicKrisp；配置未写入。")
+        try checkKosmicKrisp(support: support)
     }
     if args["--renderer"] == "vulkan" {
         try check(manager.fileExists(atPath: support.appendingPathComponent("runtime/renderers/moltenvk/libMoltenVK.dylib").path), "此应用未安装 MoltenVK。")
@@ -295,6 +299,15 @@ func configure(_ app: URL, _ args: [String: String]) throws {
         throw error
     }
     print("配置已保存，下次启动生效。")
+}
+
+func checkKosmicKrisp(support: URL) throws {
+    try check(ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26,
+              "KosmicKrisp 需要 macOS 26 或更新版本。")
+    for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json"] {
+        try check(FileManager.default.fileExists(atPath: support.appendingPathComponent("runtime/renderers/kosmickrisp/" + file).path),
+                  "此应用未完整安装 KosmicKrisp 实验后端；请先安装组件。")
+    }
 }
 
 let configurationFields = [

@@ -1,0 +1,538 @@
+Copyright notices from the pinned Mesa compiler, Vulkan, KosmicKrisp, utility and include sources.
+Full source and file-specific licenses are retained in the third-party source archive.
+
+""" + COPYRIGHT + """\
+"Copyright: 2014-2024 The Khronos Group Inc.",
+"Licensor" shall mean the copyright owner or entity authorized by the copyright owner
+"copyright" : [
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# Copyright (C) 2014 Connor Abbott
+# Copyright (C) 2014 Intel Corporation
+# Copyright (C) 2015 Intel Corporation
+# Copyright (C) 2018 Red Hat
+# Copyright (C) 2018 Valve Corporation
+# Copyright (C) 2020 Google, Inc.
+# Copyright (C) 2021 Google, Inc.
+# Copyright (C) 2022 Roman Stratiienko (r.stratiienko@gmail.com)
+# Copyright (C) 2026 Valve Corporation
+# Copyright 2016 Intel Corporation
+# Copyright 2017 Intel Corporation
+# Copyright 2020 Intel Corporation
+# Copyright 2021 Collabora, Ltd.
+# Copyright 2022 Alyssa Rosenzweig
+# Copyright 2025 Google LLC
+# Copyright 2025 LunarG, Inc.
+# Copyright 2025 Valve Corporation
+# Copyright 2026 Google LLC
+# Copyright 2026 LunarG, Inc.
+# Copyright © 2013 Intel Corporation
+# Copyright © 2017 Intel Corporation
+# Copyright © 2018 Intel Corporation
+# Copyright © 2019 Google
+# Copyright © 2019 Google LLC
+# Copyright © 2019 Intel Corporation
+# Copyright © 2020 Google, Inc
+# Copyright © 2020 Google, Inc.
+# Copyright © 2022 Intel Corporation
+# Copyright © 2022 Konstantin Seurer
+# Copyright © 2023 Igalia S.L.
+# Copyright © 2023 Intel Corporation
+# Copyright © 2024 Igalia S.L.
+# Copyright © 2025 LunarG, Inc
+# Copyright © 2026 Collabora, Ltd.
+# Copyright © Microsoft Corporation
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# The above copyright notice and this permission notice (including the
+# The above copyright notice and this permission notice (including the next
+# The above copyright notice and this permission notice shall be included in
+# This will print the copyright message on the top of this file
+${copyright}
+${mit_license(["Copyright (C) 2020 Google, Inc."])}
+${mit_license(["Copyright © 2021 Igalia S.L."])}
+% for c_holder in copyrights[1:]:
+*      copyright notice, this list of conditions and the following disclaimer
+*    * Redistributions of source code must retain the above copyright
+*    This is free and unencumbered software. Any copyright is dedicated
+*   Copyright 2012 Google, Inc
+*  1. Redistributions of source code must retain the above copyright notice,
+*  2. Redistributions in binary form must reproduce the above copyright
+*  Copyright 2012 Google, Inc
+*  Copyright 2015-2016 Collabora Ltd.
+*  Copyright 2017 The Android Open Source Project
+*  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+*  The above copyright notice and this permission notice shall be included in
+* (C) Copyright IBM Corporation 2004
+* A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* AUTHORS, COPYRIGHT HOLDERS, AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
+* COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+* Copyright (C) 1999 Wittawat Yamwong
+* Copyright (C) 1999-2006  Brian Paul   All Rights Reserved.
+* Copyright (C) 1999-2006  Brian Paul  All Rights Reserved.
+* Copyright (C) 1999-2007  Brian Paul   All Rights Reserved.
+* Copyright (C) 1999-2008  Brian Paul   All Rights Reserved.
+* Copyright (C) 2003 Felix Kuehling
+* Copyright (C) 2004  Roland Scheidegger   All Rights Reserved.
+* Copyright (C) 2005-2007  Brian Paul   All Rights Reserved.
+* Copyright (C) 2006  Brian Paul   All Rights Reserved.
+* Copyright (C) 2008  VMware, Inc.   All Rights Reserved.
+* Copyright (C) 2008 The Android Open Source Project
+* Copyright (C) 2009  VMware, Inc.  All Rights Reserved.
+* Copyright (C) 2009 The Android Open Source Project
+* Copyright (C) 2010 Intel Corporation
+* Copyright (C) 2010 The Android Open Source Project
+* Copyright (C) 2010-2011 Chia-I Wu <olvaffe@gmail.com>
+* Copyright (C) 2010-2011 LunarG Inc.
+* Copyright (C) 2011 LunarG, Inc.
+* Copyright (C) 2011 Marek Olšák <maraeo@gmail.com>
+* Copyright (C) 2011 Red Hat Inc.
+* Copyright (C) 2011 The Android Open Source Project
+* Copyright (C) 2012 Rob Clark <robclark@freedesktop.org>
+* Copyright (C) 2012-2023 Yann Collet
+* Copyright (C) 2013 Red Hat
+* Copyright (C) 2013 The Android Open Source Project
+* Copyright (C) 2014  Intel Corporation  All Rights Reserved.
+* Copyright (C) 2014 Intel Corporation
+* Copyright (C) 2014 The Android Open Source Project
+* Copyright (C) 2014-2018 Broadcom
+* Copyright (C) 2015 Etnaviv Project
+* Copyright (C) 2015-2021 LunarG, Inc.
+* Copyright (C) 2015-2021 Valve Corporation
+* Copyright (C) 2016 Advanced Micro Devices, Inc.
+* Copyright (C) 2016 Intel Corporation
+* Copyright (C) 2016 Linaro, Ltd., Rob Herring <robh@kernel.org>
+* Copyright (C) 2017 Intel Corporation
+* Copyright (C) 2017 The Android Open Source Project
+* Copyright (C) 2018 Collabora, Robert Foss <robert.foss@collabora.com>
+* Copyright (C) 2018 Stefan Schake <stschake@gmail.com>
+* Copyright (C) 2018-2019 Intel Corporation
+* Copyright (C) 2018-2023 Collabora Ltd.
+* Copyright (C) 2018-2025 Intel Corporation
+* Copyright (C) 2019 Alyssa Rosenzweig
+* Copyright (C) 2019 Andreas Baierl
+* Copyright (C) 2019 Collabora, Ltd.
+* Copyright (C) 2019-2021 Collabora, Ltd.
+* Copyright (C) 2020 Google, Inc.
+* Copyright (C) 2020 Valve Corporation
+* Copyright (C) 2020-2021 Collabora, Ltd.
+* Copyright (C) 2021 Advanced Micro Devices, Inc.
+* Copyright (C) 2021 GlobalLogic Ukraine
+* Copyright (C) 2021-2022 Roman Stratiienko (r.stratiienko@gmail.com)
+* Copyright (C) 2022  Yongang Luo       All Rights Reserved.
+* Copyright (C) 2022 Collabora Ltd.
+* Copyright (C) 2022 Roman Stratiienko (r.stratiienko@gmail.com)
+* Copyright (C) 2023 Roman Stratiienko (r.stratiienko@gmail.com)
+* Copyright (C) 2025 Arm Ltd.
+* Copyright (C) 2025 Google LLC
+* Copyright (C) 2025 Valve Corporation
+* Copyright (C) 2026 NXP
+* Copyright (C) Fuzhou Rockchip Electronics Co.Ltd
+* Copyright (C) The Asahi Linux Contributors
+* Copyright (c) 2007 Dave Airlie <airlied@linux.ie>
+* Copyright (c) 2007 Jakob Bornecrantz <wallbraker@gmail.com>
+* Copyright (c) 2007-2008 Intel Corporation
+* Copyright (c) 2007-2008 Tungsten Graphics, Inc., Cedar Park, TX., USA
+* Copyright (c) 2008 Red Hat Inc.
+* Copyright (c) 2008 VMware, Inc.
+* Copyright (c) 2008-2026 The Khronos Group Inc.
+* Copyright (c) 2012-2019 Christian Rau <rauy@users.sourceforge.net>
+* Copyright (c) 2015 Intel Corporation
+* Copyright (c) 2015-2019 Baldur Karlsson
+* Copyright (c) 2017 Intel Corporation
+* Copyright (c) 2017-2022 Advanced Micro Devices, Inc.
+* Copyright (c) 2018-2026 The Khronos Group Inc.
+* Copyright (c) 2019, Microsoft Corporation.
+* Copyright (c) 2019-2026 The Khronos Group Inc.
+* Copyright (c) 2020 Etnaviv Project
+* Copyright (c) 2022 Collabora Ltd.
+* Copyright (c) 2022 Intel Corporation
+* Copyright (c) 2022 Red Hat
+* Copyright (c) 2023-2026 The Khronos Group Inc.
+* Copyright (c) 2025 Yonggang Luo
+* Copyright (c) 2026 Collabora Ltd.
+* Copyright 1998-1999 Precision Insight, Inc., Cedar Park, Texas.
+* Copyright 1999 Precision Insight, Inc., Cedar Park, Texas.
+* Copyright 1999-2006 Brian Paul
+* Copyright 1999-2008  Brian Paul
+* Copyright 2000 Precision Insight, Inc., Cedar Park, Texas.
+* Copyright 2000 VA Linux Systems, Inc., Fremont, California.
+* Copyright 2000 VA Linux Systems, Inc., Sunnyvale, California.
+* Copyright 2002 Tungsten Graphics, Inc., Cedar Park, Texas.
+* Copyright 2003 Tungsten Graphics, Inc., Cedar Park, Texas.
+* Copyright 2005 Stephane Marchesin.
+* Copyright 2006 VMware, Inc., Bismarck, ND. USA.
+* Copyright 2007 VMware, Inc.
+* Copyright 2007-2008 Red Hat, Inc.
+* Copyright 2007-2008 VMware, Inc.
+* Copyright 2007-2013 VMware, Inc.
+* Copyright 2008 Dennis Smit
+* Copyright 2008 VMware, Inc.
+* Copyright 2008-2010 VMware, Inc.
+* Copyright 2009 VMware, Inc.
+* Copyright 2009-2010 VMware, Inc.
+* Copyright 2010 Luca Barbieri
+* Copyright 2010 Marek Olšák <maraeo@gmail.com>
+* Copyright 2010 VMware, Inc.
+* Copyright 2011 Christian König
+* Copyright 2011 Christian König.
+* Copyright 2011 Intel Corporation
+* Copyright 2011 LunarG, Inc.
+* Copyright 2011 Red Hat Inc.
+* Copyright 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018 The Regents of the
+* Copyright 2012 Google, Inc.
+* Copyright 2013 Advanced Micro Devices, Inc.
+* Copyright 2013 Red Hat
+* Copyright 2014 Advanced Micro Devices, Inc.
+* Copyright 2014 Connor Abbott
+* Copyright 2014 Intel Corporation
+* Copyright 2014 VMware, Inc.
+* Copyright 2015 Advanced Micro Devices, Inc.
+* Copyright 2015 Philip Taylor <philip@zaynar.co.uk>
+* Copyright 2015 Red Hat
+* Copyright 2015 The Android Open Source Project
+* Copyright 2015 VMware, Inc.
+* Copyright 2015-2023 LunarG, Inc.
+* Copyright 2015-2023 The Khronos Group Inc.
+* Copyright 2015-2023 Valve Corporation
+* Copyright 2016 Advanced Micro Devices, Inc.
+* Copyright 2016 Broadcom
+* Copyright 2017 Advanced Micro Devices, Inc.
+* Copyright 2017 Google
+* Copyright 2017 Intel Corporation
+* Copyright 2017 The Android Open Source Project
+* Copyright 2017 Timothy Arceri
+* Copyright 2017 Valve Corporation
+* Copyright 2018 Advanced Micro Devices, Inc.
+* Copyright 2018 Collabora Ltd.
+* Copyright 2018 Intel Corporation
+* Copyright 2018 The Android Open Source Project
+* Copyright 2018-2019 Collabora Ltd.
+* Copyright 2019 Collabora, Ltd.
+* Copyright 2019 Intel Corporation
+* Copyright 2020 Collabora Ltd.
+* Copyright 2020 Collabora, Ltd.
+* Copyright 2020 Google, Inc.
+* Copyright 2020 Intel Corporation
+* Copyright 2020 Lag Free Games, LLC
+* Copyright 2020 Raspberry Pi Ltd
+* Copyright 2020 Red Hat
+* Copyright 2020-2022 Matias N. Goldberg
+* Copyright 2021 Alyssa Rosenzweig
+* Copyright 2021 Collabora Ltd.
+* Copyright 2021 Google LLC
+* Copyright 2021 Intel Corporation
+* Copyright 2021 Red Hat, Inc.
+* Copyright 2021 Snap Inc.
+* Copyright 2021-2022 Collabora, Ltd.
+* Copyright 2022 Advanced Micro Devices, Inc.
+* Copyright 2022 Alyssa Rosenzweig
+* Copyright 2022 Collabora Ltd
+* Copyright 2022 Collabora Ltd. and Red Hat Inc.
+* Copyright 2022 Google LLC
+* Copyright 2022 Intel Corporation
+* Copyright 2022 Yonggang Luo
+* Copyright 2022-2023 Collabora Ltd. and Red Hat Inc.
+* Copyright 2023 Advanced Micro Devices, Inc.
+* Copyright 2023 Alyssa Rosenzweig
+* Copyright 2023 Bas Nieuwenhuizen
+* Copyright 2023 Google LLC
+* Copyright 2023 Intel Corporation
+* Copyright 2023 Red Hat
+* Copyright 2023 Valve Corpoation
+* Copyright 2023 Valve Corporation
+* Copyright 2024 Advanced Micro Devices, Inc.
+* Copyright 2024 Alyssa Rosenzweig
+* Copyright 2024 Autodesk, Inc.
+* Copyright 2024 Google LLC
+* Copyright 2024 Intel Corporation
+* Copyright 2024 Valve Corpoation
+* Copyright 2024 Valve Corporation
+* Copyright 2025 Advanced Micro Devices, Inc.
+* Copyright 2025 Collabora Ltd
+* Copyright 2025 Google LLC
+* Copyright 2025 Igalia S.L.
+* Copyright 2025 Intel Corporation
+* Copyright 2025 LunarG, Inc
+* Copyright 2025 LunarG, Inc.
+* Copyright 2025 Valve Corporation
+* Copyright 2026 Advanced Micro Devices, Inc.
+* Copyright 2026 Google LLC
+* Copyright 2026 Igalia S.L.
+* Copyright 2026 Jan Meisel
+* Copyright 2026 LunarG, Inc.
+* Copyright 2026 Valve Corporation
+* Copyright © 1988-2004 Keith Packard and Bart Massey.
+* Copyright © 2003 Felix Kuehling
+* Copyright © 2008 Intel Corporation
+* Copyright © 2008, 2009 Intel Corporation
+* Copyright © 2008, 2010 Intel Corporation
+* Copyright © 2009 Intel Corporation
+* Copyright © 2009,2012 Intel Corporation
+* Copyright © 2009-2012 Intel Corporation
+* Copyright © 2010 Intel Corporation
+* Copyright © 2010 Luca Barbieri
+* Copyright © 2010 Valve Software
+* Copyright © 2011 Intel Corporation
+* Copyright © 2012 Collabora, Ltd.
+* Copyright © 2012 Intel Corporation
+* Copyright © 2013 Intel Corporation
+* Copyright © 2014 - 2015 Collabora, Ltd.
+* Copyright © 2014 Broadcom
+* Copyright © 2014 Connor Abbott
+* Copyright © 2014 Intel Corporation
+* Copyright © 2014 Red Hat
+* Copyright © 2014-2015 Broadcom
+* Copyright © 2014-2018 Broadcom
+* Copyright © 2015 Broadcom
+* Copyright © 2015 Connor Abbott
+* Copyright © 2015 Intel
+* Copyright © 2015 Intel Corporation
+* Copyright © 2015 Red Hat
+* Copyright © 2015 Thomas Helland
+* Copyright © 2015-2023 Intel Corporation
+* Copyright © 2016 Advanced Micro Devices, Inc.
+* Copyright © 2016 Bas Nieuwenhuizen
+* Copyright © 2016 Broadcom
+* Copyright © 2016 Collabora, Ltd.
+* Copyright © 2016 Intel Corporation
+* Copyright © 2016 Red Hat
+* Copyright © 2016 Red Hat.
+* Copyright © 2017 Advanced Micro Devices, Inc.
+* Copyright © 2017 Connor Abbott
+* Copyright © 2017 Faith Ekstrand
+* Copyright © 2017 Google
+* Copyright © 2017 Google, Inc.
+* Copyright © 2017 Gražvydas Ignotas
+* Copyright © 2017 Intel Corporation
+* Copyright © 2017 Keith Packard
+* Copyright © 2017 Red Hat
+* Copyright © 2017 Thomas Helland
+* Copyright © 2017 Timothy Arceri
+* Copyright © 2018 Advanced Micro Devices, Inc.
+* Copyright © 2018 Broadcom
+* Copyright © 2018 Intel Corporation
+* Copyright © 2018 Red Hat
+* Copyright © 2018 Red Hat Inc.
+* Copyright © 2018 Timothy Arceri
+* Copyright © 2018 Valve Corporation
+* Copyright © 2018, Google Inc.
+* Copyright © 2019 Alyssa Rosenzweig
+* Copyright © 2019 Broadcom
+* Copyright © 2019 Collabora Ltd.
+* Copyright © 2019 Collabora ltd.
+* Copyright © 2019 Google LLC
+* Copyright © 2019 Google, Inc
+* Copyright © 2019 Google, Inc.
+* Copyright © 2019 Google, LLC
+* Copyright © 2019 Intel Corporation
+* Copyright © 2019 Raspberry Pi Ltd
+* Copyright © 2019 Red Hat
+* Copyright © 2019 Red Hat Inc.
+* Copyright © 2019 Red Hat, Inc
+* Copyright © 2019 Red Hat.
+* Copyright © 2019 Timothy Arceri
+* Copyright © 2019 Valve Corporation
+* Copyright © 2019 Vasily Khoruzhick <anarsoul@gmail.com>
+* Copyright © 2020 Advanced Micro Devices, Inc.
+* Copyright © 2020 Collabora Ltd.
+* Copyright © 2020 Collabora, Ltd.
+* Copyright © 2020 Google LLC
+* Copyright © 2020 Google, Inc.
+* Copyright © 2020 Igalia S.L.
+* Copyright © 2020 Intel Corporation
+* Copyright © 2020 Jonathan Marek
+* Copyright © 2020 Julian Winkler
+* Copyright © 2020 Microsoft Corporation
+* Copyright © 2020 Mike Blumenkrantz
+* Copyright © 2020 Red Hat Inc.
+* Copyright © 2020 Valve Corporation
+* Copyright © 2021 Advanced Micro Devices, Inc.
+* Copyright © 2021 Bas Nieuwenhuizen
+* Copyright © 2021 Collabora Ltd.
+* Copyright © 2021 Collabora, Ltd.
+* Copyright © 2021 Google
+* Copyright © 2021 Google LLC
+* Copyright © 2021 Google, Inc.
+* Copyright © 2021 Igalia S.L.
+* Copyright © 2021 Intel Corporation
+* Copyright © 2021 Red Hat
+* Copyright © 2021 Valve Corporation
+* Copyright © 2021, Google Inc.
+* Copyright © 2022 Advanced Micro Devices, Inc.
+* Copyright © 2022 Bas Nieuwenhuizen
+* Copyright © 2022 Collabora Ltc.
+* Copyright © 2022 Collabora Ltd
+* Copyright © 2022 Collabora Ltd.
+* Copyright © 2022 Collabora Ltd. and Red Hat Inc.
+* Copyright © 2022 Collabora, LTD
+* Copyright © 2022 Collabora, Ltd
+* Copyright © 2022 Collabora, Ltd.
+* Copyright © 2022 Friedrich Vock
+* Copyright © 2022 Google, Inc.
+* Copyright © 2022 Intel Corporation
+* Copyright © 2022 Konstantin Seurer
+* Copyright © 2022 Pavel Ondračka
+* Copyright © 2022 Valve Corporation
+* Copyright © 2022 Yonggang Luo
+* Copyright © 2023 Advanced Micro Devices, Inc.
+* Copyright © 2023 Collabora Ltd.
+* Copyright © 2023 Collabora, Ltd
+* Copyright © 2023 Collabora, Ltd.
+* Copyright © 2023 Google LLC
+* Copyright © 2023 Google, Inc.
+* Copyright © 2023 Igalia S.L.
+* Copyright © 2023 Intel Corporation
+* Copyright © 2023 Intel Corporation.
+* Copyright © 2023 Timothy Arceri <tarceri@itsqueeze.com>
+* Copyright © 2023 Valve Corporation
+* Copyright © 2024 Advanced Micro Devices, Inc.
+* Copyright © 2024 Alyssa Rosenzweig
+* Copyright © 2024 Collabora Ltd. and Red Hat Inc.
+* Copyright © 2024 Collabora, Ltd.
+* Copyright © 2024 Google, Inc.
+* Copyright © 2024 Igalia
+* Copyright © 2024 Igalia S.L.
+* Copyright © 2024 Intel Corporation
+* Copyright © 2024 Tomeu Vizoso
+* Copyright © 2024 Valve Corporation
+* Copyright © 2025 Advanced Micro Devices, Inc.
+* Copyright © 2025 Arm Ltd
+* Copyright © 2025 Collabora Ltd
+* Copyright © 2025 Collabora Ltd.
+* Copyright © 2025 Collabora Ltd. and Igalia S.L.
+* Copyright © 2025 Collabora, Ltd.
+* Copyright © 2025 Igalia S.L.
+* Copyright © 2025 Igalia SL
+* Copyright © 2025 Imagination Technologies Ltd.
+* Copyright © 2025 Intel Corporation
+* Copyright © 2025 LunarG, Inc
+* Copyright © 2025 Red Hat Inc.
+* Copyright © 2025 Valve Corporation
+* Copyright © 2026 Google LLC
+* Copyright © 2026 Jan Meisel
+* Copyright © 2026 NXP
+* Copyright © 2026 Pavel Ondračka
+* Copyright © 2026 Valve Corporation
+* Copyright © Microsoft Corporation
+* Copyright(C) 2015 Intel Ltd
+* EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+* IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR
+* IN NO EVENT SHALL THE COPYRIGHT OWNER(S) AND/OR ITS SUPPLIERS BE
+* NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS, AUTHORS
+* NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+* No copyright claimed on this file.
+* THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+* THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
+* THE COPYRIGHT HOLDERS AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
+* THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+* THE COPYRIGHT HOLDERS, AUTHORS AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM,
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+* The above copyright notice and this permission notice (including the
+* The above copyright notice and this permission notice (including the next
+* The above copyright notice and this permission notice shall be
+* The above copyright notice and this permission notice shall be included
+* The above copyright notice and this permission notice shall be included in
+* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+* that the name of the copyright holders not be used in advertising or
+* the above copyright notice appear in all copies and that both that copyright
+* written prior permission.  The copyright holders make no representations
+** Copyright (c) 2008-2018 The Khronos Group Inc.
+** Copyright (c) 2014-2016 The Khronos Group Inc.
+** Copyright 2007-2020 The Khronos Group Inc.
+** Copyright 2008-2020 The Khronos Group Inc.
+** Copyright 2013-2020 The Khronos Group Inc.
+** Copyright 2014-2026 The Khronos Group Inc.
+** Copyright 2015-2026 The Khronos Group Inc.
+** Copyright 2017-2020 The Khronos Group Inc.
+** Copyright: 2014-2024 The Khronos Group Inc.
+** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+** SPDX-FileCopyrightText: 2014-2024 The Khronos Group Inc.
+** SPDX-FileCopyrightText: 2015-2024 The Khronos Group Inc.
+** THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+** The above copyright notice and this permission notice shall be included
+** The above copyright notice and this permission notice shall be included in
+/* ${copyrights[0]}
+/* Copyright (C) 2014 Connor Abbott
+/* Copyright (C) 2015 Broadcom
+/* Copyright (C) 2018 Red Hat
+/* Copyright (C) 2020 Google, Inc.
+/* Copyright (C) 2021 Google, Inc.
+/* Copyright (C) 2023 Collabora ltd. */
+/* Copyright (C) 2025 Arm, Ltd. */
+/* Copyright (c) 2012-2020 NVIDIA Corporation */
+/* Copyright (c) 2017-2022 Hans-Kristian Arntzen
+/* Copyright (c) 2017-2023 Hans-Kristian Arntzen
+/* Copyright (c) 2020-2022 Hans-Kristian Arntzen
+/* Copyright (c) 2023 Imagination Technologies Ltd. */
+/* Copyright 2008 VMware, Inc. */
+/* Copyright 2017 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2017-2018 Qiang Yu <yuq825@gmail.com> */
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2020 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2024 Valve Corporation
+/* Copyright 2025 Advanced Micro Devices, Inc.
+/* Copyright 2026 Advanced Micro Devices, Inc.
+/* Copyright © 2015-2021 Intel Corporation
+/* Copyright © 2021 Intel Corporation
+/* Copyright © 2022 Collabora, Ltd.
+/* Copyright © 2023 Collabora, Ltd.
+/* Copyright © 2023 Valve Corporation
+/* Copyright © 2026 Valve Corporation
+// Copyright 2012-2016 Advanced Micro Devices, Inc.
+// Copyright 2012-2016 Francisco Jerez
+// Copyright 2014-2015 Serge Martin
+// Copyright 2014-2016 Jan Vesely
+// Copyright 2015 Zoltan Gilian
+// Copyright 2017 The ANGLE Project Authors. All rights reserved.
+// Copyright 2020 Serge Martin
+// Copyright © 2022 Collabora, Ltd.
+// Copyright © 2023 Collabora, Ltd.
+// Copyright © 2024 Collabora, Ltd.
+// Copyright © 2024 Igalia S.L.
+// Copyright © 2024 Mel Henning
+// Copyright © 2025 Collabora, Ltd.
+// Copyright © 2025 Valve Corporation
+// Copyright © 2026 Collabora, Ltd.
+// SPDX-FileCopyrightText: 2018-2024 The Khronos Group Inc.
+// THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+// The above copyright notice and this permission notice shall be included in
+2. Grant of Copyright License. Subject to the terms and conditions of this License, each
+<%def name="mit_license(copyrights)">\
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+COPYRIGHT = """\
+COPYRIGHT = textwrap.dedent(u"""\
+COPYRIGHT=u"""
+CopyRight = '''
+Copyright (c) 2012 - 2023 Krzysztof Gabis
+Copyright 2015-2026 The Khronos Group Inc.
+Copyright [yyyy] [name of copyright owner]
+SPDX-FileCopyrightText: 2015-2024 The Khronos Group Inc.
+TEMPLATE  = Template(COPYRIGHT + """\
+TEMPLATE_C = Template(COPYRIGHT + """
+TEMPLATE_C = Template(COPYRIGHT + """\
+TEMPLATE_H = Template(COPYRIGHT + """
+TEMPLATE_H = Template(COPYRIGHT + """\
+The above copyright notice and this permission notice shall be included in
+You may add Your own copyright statement to Your modifications and may provide
+_TEMPLATE_C = Template(COPYRIGHT + """
+_TEMPLATE_H = Template(COPYRIGHT + """
+available under the License, as indicated by a copyright notice that is included in or
+copyright = """/*
+copyright, patent, trademark, and attribution notices from the Source form of the Work,
+copyright=COPYRIGHT))
+enum_template = mako.template.Template(copyright + """
+fprintf(fp, " * Copyright %s\n", copyright);
+fprintf(fp, " * Copyright Mesa3D Contributors\n");
+is intentionally submitted to Licensor for inclusion in the Work by the copyright owner
+marked or otherwise designated in writing by the copyright owner as "Not a Contribution."
+nir_precomp_print_header(FILE *fp_c, FILE *fp_h, const char *copyright,
+of purpose be included on the same "printed page" as the copyright notice for easier
+or by an individual or Legal Entity authorized to submit on behalf of the copyright owner.
+print(CopyRight.strip())
+print(CopyRight.strip(), file=file)
+royalty-free, irrevocable copyright license to reproduce, prepare Derivative Works of,
+strings_template = mako.template.Template(copyright + """

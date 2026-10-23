@@ -113,5 +113,15 @@
     "url": "https://github.com/ip7z/7zip/releases/download/26.04/7z2604-src.tar.xz",
     "sha256": "9691944c0fe0d01bb49373a704fb983fd33bc98b1738695179dfbf99ac1734f6",
     "file": "7z2604-src.tar.xz"
+  },
+  "kosmickrisp-mesa": {
+    "url": "https://codeload.github.com/shadexternals/mesa/tar.gz/b23137f730fa90577bcfc7aa12c2a1fc1e49f1c7",
+    "sha256": "47ab33cb673f6440b7f87106bc55d0342737b2b332733b4a4fa727b4df843b3a",
+    "file": "kosmickrisp-mesa-b23137f730fa90577bcfc7aa12c2a1fc1e49f1c7.tar.gz"
+  },
+  "kosmickrisp-build": {
+    "url": "https://codeload.github.com/Sikarugir-App/mesa-kosmickrisp/tar.gz/52d87b35f3a4fc8aff5acb4daaa548c8ff7870f1",
+    "sha256": "6bebd08548cc262186f4f9c7a7ac270334d1086779b1e80cd306bdd7464122a5",
+    "file": "kosmickrisp-build-52d87b35f3a4fc8aff5acb4daaa548c8ff7870f1.tar.gz"
   }
 }

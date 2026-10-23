@@ -13,6 +13,7 @@ obtained during installation, not included in the distribution.
 | DXMT NGX backport | 0.80 + `50102f994b406f58f56d5d09f2ad20f9b90390a2`, separate `dxmt-metalfx` backend | MIT base; LGPL-2.1-or-later patch; see `licenses/DXMT-NGX-patch.txt` and `licenses/Wine-LGPL-2.1.txt` |
 | NVIDIA NVAPI headers | `d08488fcc82eef313b0464db37d2955709691e94`; used to build DXMT's own NVAPI implementation with a local logical GPU query patch | MIT; see `licenses/NVAPI-headers.txt` |
 | MoltenVK | 1.4.2, FineWine 1.2.4 patched distribution | Apache-2.0 and incorporated dependency notices |
+| KosmicKrisp (experimental) | Sikarugir 20261017 x86_64; Mesa `b23137f730fa90577bcfc7aa12c2a1fc1e49f1c7` | MIT core and individual component licenses; see `licenses/KosmicKrisp/` |
 | 7-Zip | 26.04 Homebrew bottle, `DISABLE_RAR_COMPRESS=1` | LGPL-2.1-or-later / BSD; see included license |
 | GnuTLS, libtasn1, libidn2, libunistring, libiconv, gettext runtime, GMP, Nettle | Versions and hashes in `macports.lock.json` | Applicable LGPL / GPL alternatives; see component sources |
 | Brotli, libffi, p11-kit | Versions and hashes in `macports.lock.json` | Permissive licenses |
@@ -35,6 +36,7 @@ debugging modifications to those libraries.
 - DXMT NGX backport: https://github.com/3Shain/dxmt/pull/235 ; exact patch in `Patches/`, rebuild command `swift run zmd-dev metalfx`, installed module hash in `renderers/dxmt-metalfx/provenance.json`.
 - Local NVAPI fix: `Patches/dxmt-nvapi-logical-gpu.patch` (MIT), separate from upstream #235. Header source: https://github.com/NVIDIA/nvapi/tree/d08488fcc82eef313b0464db37d2955709691e94 .
 - MoltenVK source and patch commits: see bundled `runtime/renderers/moltenvk/SOURCE.txt` and `provenance.json`.
+- KosmicKrisp: pinned binary and build/Mesa commits in `kosmickrisp.lock.json`; sources in `licenses/sources.json`. The Sikarugir build recipe uses the shadexternals Mesa fork. We relocate/sign the binary and reuse our pinned Vulkan loader; runtime hashes are in `renderers/kosmickrisp/provenance.json`. No upstream SDK installer is distributed or required.
 - MacPorts package URLs, versions, SHA-256 values: `macports.lock.json`.
 - Build tool and 7-Zip bottle URLs, versions, SHA-256 values: `dependencies.lock.json`.
 

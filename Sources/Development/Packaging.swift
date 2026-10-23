@@ -32,7 +32,7 @@ func appMetadata(template: Bool) -> [String: Any] {
     "CFBundleDevelopmentRegion": "zh_CN", "CFBundleDisplayName": "鹰角启动器", "CFBundleName": "鹰角启动器",
     "CFBundleIdentifier": "local.zmdmac.endfield.template", "CFBundleExecutable": "Endfield",
     "CFBundlePackageType": "APPL", "CFBundleInfoDictionaryVersion": "6.0",
-    "CFBundleShortVersionString": version, "CFBundleVersion": "6", "LSMinimumSystemVersion": "27.0",
+    "CFBundleShortVersionString": version, "CFBundleVersion": "7", "LSMinimumSystemVersion": "27.0",
     "LSMultipleInstancesProhibited": true, "NSHighResolutionCapable": true, "LSUIElement": template,
   ]
 }
@@ -42,6 +42,9 @@ func packageDistribution(runtime: URL, sevenzip: URL, output: URL) throws {
     try require(!path.exists && !path.link, "Refusing to overwrite \(path.path)")
   }
   try validateRuntime(runtime)
+  try require(runtime.at("renderers/kosmickrisp/provenance.json").exists,
+              "Install the experimental backend first: zmd-dev kosmickrisp --runtime DIR")
+  try installKosmicKrisp(runtime) // Verify the pinned component and hashes before packaging.
   let stage = try temp(output.deletingLastPathComponent(), ".zmd-release-")
   defer { try? fm.removeItem(at: stage) }
   let distribution = stage.at(output.lastPathComponent)
@@ -51,7 +54,7 @@ func packageDistribution(runtime: URL, sevenzip: URL, output: URL) throws {
   try mkdir(contents.at("MacOS"))
   try mkdir(support.at("logs"))
   try copy(project.at("Resources/prefix-settings.reg"), support.at("prefix-settings.reg"))
-  try write("2\n", support.at("runtime-interface"))
+  try write("3\n", support.at("runtime-interface"))
   try compile(coreSources + ["Sources/zmd/main.swift"], distribution.at("zmd"))
   try sign(distribution.at("zmd"))
   try compile(launcherSources, contents.at("MacOS/Endfield"))
@@ -75,7 +78,7 @@ func packageDistribution(runtime: URL, sevenzip: URL, output: URL) throws {
   }
   for name in [
     "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "docs", "licenses", "dependencies.lock.json",
-    "macports.lock.json",
+    "macports.lock.json", "kosmickrisp.lock.json",
   ] {
     try copy(project.at(name), distribution.at(name))
     try copy(project.at(name), support.at(name))
@@ -215,11 +218,11 @@ func updateApp(_ app: URL) throws {
   let temporary = contents.at("MacOS/Endfield.new")
   try copy(fresh, temporary)
   try require(rename(temporary.path, entry.path) == 0, "Failed to replace entry")
-  try write("2\n", support.at("runtime-interface"))
+  try write("3\n", support.at("runtime-interface"))
   try copy(project.at("Resources/prefix-settings.reg"), support.at("prefix-settings.reg"))
   var metadata = try plist(contents.at("Info.plist"))
   metadata["CFBundleShortVersionString"] = version
-  metadata["CFBundleVersion"] = "6"
+  metadata["CFBundleVersion"] = "7"
   metadata["CFBundleName"] = app.deletingPathExtension().lastPathComponent
   metadata["CFBundleDisplayName"] = metadata["CFBundleName"]
   metadata["LSMultipleInstancesProhibited"] = true
@@ -251,7 +254,7 @@ func packageSources(_ runtime: URL, output: URL) throws {
   }
   for name in [
     "Sources", "Tests", "Patches", "Resources", "Package.swift", "licenses",
-    "dependencies.lock.json", "macports.lock.json", "moltenvk-experimental.lock.json",
+    "dependencies.lock.json", "macports.lock.json", "moltenvk-experimental.lock.json", "kosmickrisp.lock.json",
   ] { try copy(project.at(name), stage.at(name)) }
   if runtime.at("renderers/moltenvk-experimental/provenance.json").exists {
     for (name, value) in try json(project.at("moltenvk-experimental.lock.json")) {

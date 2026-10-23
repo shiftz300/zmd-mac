@@ -6,7 +6,7 @@ let project = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
   .deletingLastPathComponent().deletingLastPathComponent()
 let env = ProcessInfo.processInfo.environment
 let work = URL(fileURLWithPath: env["ZMD_WORK_DIR"] ?? project.path).standardizedFileURL
-let version = "0.6.3"
+let version = "0.7.0"
 struct Failure: LocalizedError {
   let message: String
   init(_ message: String) { self.message = message }

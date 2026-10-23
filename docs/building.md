@@ -61,15 +61,30 @@ swift run zmd-dev update-app --app "$HOME/Applications/鹰角启动器.app"
 
 ## 图形后端
 
-默认构建包含稳定版 MoltenVK 和独立 DXMT + MetalFX。
+默认构建包含稳定版 MoltenVK、KosmicKrisp 实验后端和独立 DXMT + MetalFX；仍默认使用 MoltenVK。
 MetalFX 基于锁定的 DXMT 0.80，回移 NGX #235 并补充 NVAPI 逻辑 GPU 查询。
 源码、补丁和编译器输入均有锁定哈希，不链接 NVIDIA 驱动库，不打包游戏签名 DLL。
 
 ```sh
+swift run zmd-dev kosmickrisp --runtime "$PWD/runtime"
+swift run zmd-dev test-kosmickrisp --runtime "$PWD/runtime"
 swift run zmd-dev metalfx --runtime "$PWD/runtime"
 swift run zmd-dev experimental --runtime "$PWD/runtime" --jobs 6
 swift run zmd-dev test-vulkan --runtime "$PWD/runtime"
 ```
+
+`kosmickrisp` 下载并校验锁定的 Sikarugir x86_64 发布库，复用 Wine 运行库中的 Vulkan Loader，
+检查架构和外部依赖后签名，写入独立 `renderers/kosmickrisp` 目录。不会安装完整 SDK 或 Python。
+`build` 自动准备此组件；直接 `package` 前需先运行上述命令。PKG 和 ZIP 包含相同后端。
+`test-kosmickrisp` 使用临时 prefix 验证驱动身份、窗口交换链、GPU 清屏和呈现，不启动游戏。
+已有应用可先退出整个会话，再运行：
+
+```sh
+swift run zmd-dev kosmickrisp --runtime "$HOME/Applications/鹰角启动器.app/Contents/SharedSupport/runtime"
+swift run zmd-dev update-app --app "$HOME/Applications/鹰角启动器.app"
+```
+
+### 可选 MoltenVK 实验版
 
 实验版另需 CMake 和 Ninja。固定来源见 `moltenvk-experimental.lock.json`：
 MoltenVK `5189f8de86ec`、SPIRV-Cross `aa217aeb6c9f`，保留 FineWine 的图形补丁。
@@ -111,7 +126,7 @@ CI 在 main/master 推送时构建，PR 运行快速检查。构建和发布均�
 
 ```sh
 ZMD_WORK_DIR="$PWD/.work" swift run zmd-dev sources
-swift run zmd-dev release --tag v0.6.3 --directory release --check-only
+swift run zmd-dev release --tag v0.7.0 --directory release --check-only
 ```
 
 源码包包含锁定的上游源码、补丁、许可证及 Swift 构建资料；含实验运行库时也加入对应实验源码。

@@ -98,6 +98,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
     private func buildContents() {
         guard let content = window?.contentView else { return }
         populate(renderer, [("Vulkan · MoltenVK", "vulkan"),
+                            ("Vulkan · KosmicKrisp（实验）", "kosmickrisp"),
                             ("DirectX 11 · DXMT", "dxmt"),
                             ("DirectX 11 · DXMT + MetalFX", "dxmt-metalfx")])
         populate(windowMode, [("窗口化启动", "windowed"), ("无边框全屏启动", "fullscreen"), ("使用游戏设置", "game")])
@@ -114,7 +115,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         resolution.toolTip = "可选择预设或输入宽 × 高（像素）。重启会话时同步游戏分辨率配置；使用游戏设置则停止覆盖。游戏下拉菜单可能不列出自定义尺寸。"
         populate(moltenvk, [("稳定版", "stable"), ("实验版", "experimental")])
         populate(vulkanQueue, [("默认（同步）", "default"), ("后台队列（实验）", "async")])
-        moltenvk.setAccessibilityLabel("Vulkan 版本")
+        moltenvk.setAccessibilityLabel("MoltenVK 版本")
         vulkanQueue.setAccessibilityLabel("队列提交")
         vulkanQueue.toolTip = "后台队列改变命令提交方式，不是异步着色器编译；保存并重启整个会话后生效。"
         populate(dxmtLog, [("默认", "default"), ("仅错误", "error"), ("详细", "debug"), ("关闭", "none")])
@@ -138,7 +139,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         let runtimeTab = NSTabViewItem(identifier: "runtime")
         runtimeTab.label = "运行"
         runtimeTab.view = pane([
-            [label("图形后端"), renderer], [label("Vulkan 版本"), moltenvk],
+            [label("图形后端"), renderer], [label("MoltenVK 版本"), moltenvk],
             [label("队列提交"), vulkanQueue],
             [label("同步"), msync], [label("性能监测"), hud],
         ])

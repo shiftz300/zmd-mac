@@ -66,6 +66,11 @@ int main(int argc, char **argv)
     free(gpus);
     VkPhysicalDeviceProperties props;
     vkGetPhysicalDeviceProperties(gpu, &props);
+    FN(vkGetPhysicalDeviceProperties2);
+    VkPhysicalDeviceDriverProperties driver = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES };
+    VkPhysicalDeviceProperties2 props2 = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, .pNext = &driver };
+    vkGetPhysicalDeviceProperties2(gpu, &props2);
+    printf("Vulkan driver: %s; %s; ID %u\n", driver.driverName, driver.driverInfo, driver.driverID);
     printf("Vulkan GPU: %s; API %u.%u.%u\n", props.deviceName,
         VK_VERSION_MAJOR(props.apiVersion), VK_VERSION_MINOR(props.apiVersion),
         VK_VERSION_PATCH(props.apiVersion));

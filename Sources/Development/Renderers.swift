@@ -1,5 +1,65 @@
 import Foundation
 
+/// Import only the pinned x86_64 driver; reuse our Wine runtime's Vulkan loader.
+/// The LunarG SDK driver is arm64-only and cannot be loaded by this Wine process.
+func installKosmicKrisp(_ runtime: URL) throws {
+  let lockfile = project.at("kosmickrisp.lock.json")
+  let lock = try json(lockfile) as! [String: String]
+  let target = runtime.at("renderers/kosmickrisp")
+  if target.exists {
+    let record = try json(target.at("provenance.json"))
+    try require(record["archive_sha256"] as? String == lock["sha256"], "Different KosmicKrisp exists; preserve it before replacing")
+    let hashes = record["files"] as? [String: String] ?? [:]
+    try require(Set(hashes.keys) == Set(["libvulkan_kosmickrisp.dylib", "libvulkan.1.dylib", "kosmickrisp_icd.json"]), "Incomplete KosmicKrisp provenance")
+    for (name, hash) in hashes {
+      try require(try digest(target.at(name)) == hash, "Modified KosmicKrisp component: \(name)")
+    }
+    for file in files(project.at("licenses/KosmicKrisp")) where regular(file) {
+      let installed = target.at("licenses/" + relative(file, project.at("licenses/KosmicKrisp")))
+      try require(try digest(installed) == digest(file), "KosmicKrisp license mismatch; preserve and reinstall the component")
+    }
+    return
+  }
+  let archive = work.at("downloads/" + lock["file"]!)
+  try download(lock["url"]!, archive, lock["sha256"]!)
+  let stage = try temp(runtime.at("renderers"), ".kosmickrisp-")
+  defer { try? fm.removeItem(at: stage) }
+  let candidate = stage.at("renderer")
+  try mkdir(candidate)
+  try command(["unzip", "-q", archive.path, "libvulkan_kosmickrisp.dylib", "kosmickrisp_mesa_icd.json", "-d", candidate.path])
+  try copy(runtime.at("wine/lib/libvulkan.1.dylib").resolvingSymlinksInPath(), candidate.at("libvulkan.1.dylib"))
+  for name in ["libvulkan_kosmickrisp.dylib", "libvulkan.1.dylib"] {
+    let file = candidate.at(name)
+    try require(try command(["lipo", "-archs", file.path], capture: true).output.split(separator: " ").contains(where: { $0.trimmingCharacters(in: .whitespacesAndNewlines) == "x86_64" }), "Expected x86_64 \(name)")
+    for dep in try dependencies(file).dropFirst() {
+      try require(dep.hasPrefix("/usr/lib/") || dep.hasPrefix("/System/Library/"), "Non-system dependency: \(dep)")
+    }
+    try command(["install_name_tool", "-id", "@loader_path/" + name, file.path])
+    try sign(file)
+    try command(["codesign", "--verify", file.path])
+  }
+  var manifest = try json(candidate.at("kosmickrisp_mesa_icd.json"))
+  var icd = manifest["ICD"] as! [String: Any]
+  icd["library_path"] = "./libvulkan_kosmickrisp.dylib"
+  manifest["ICD"] = icd
+  try saveJSON(manifest, candidate.at("kosmickrisp_icd.json"))
+  try fm.removeItem(at: candidate.at("kosmickrisp_mesa_icd.json"))
+  try copy(project.at("licenses/KosmicKrisp"), candidate.at("licenses"))
+  try copy(lockfile, candidate.at("sources.lock.json"))
+  var hashes: [String: String] = [:]
+  for name in ["libvulkan_kosmickrisp.dylib", "libvulkan.1.dylib", "kosmickrisp_icd.json"] {
+    hashes[name] = try digest(candidate.at(name))
+  }
+  try saveJSON([
+    "version": lock["version"]!, "distribution": "Sikarugir-App/mesa-kosmickrisp",
+    "archive_url": lock["url"]!, "archive_sha256": lock["sha256"]!,
+    "build_commit": lock["build_commit"]!, "mesa_commit": lock["mesa_commit"]!,
+    "architecture": "x86_64", "files": hashes, "license": "MIT and included component notices",
+    "verification": "Experimental; game compatibility and performance require validation",
+  ], candidate.at("provenance.json"))
+  try fm.moveItem(at: candidate, to: target)
+}
+
 func installMoltenVK(_ runtime: URL) throws {
   let url =
     "https://github.com/stoicswe/Endfield_FineWine/releases/download/1.2.4/endfield-wine-modules.tar.gz"

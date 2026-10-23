@@ -91,6 +91,22 @@ func testCLI(_ executable: URL) throws {
           && report["vulkan_queue"] as? String == queue, "Renderer settings")
     }
   }
+  // A new renderer cannot be selected by an old application or with partial components.
+  for interface in ["1", "2", "3"] {
+    try write(interface + "\n", support.at("runtime-interface"))
+    try configure(["--renderer", "kosmickrisp", "--hud", "off"], fails: true)
+    try require(try support.at("metal-hud.conf").text == "on\n", "Unavailable renderer mutated HUD")
+  }
+  for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json"] {
+    try write("{}", support.at("runtime/renderers/kosmickrisp/" + file))
+  }
+  try write("2\n", support.at("runtime-interface"))
+  try configure(["--renderer", "kosmickrisp"], fails: true)
+  try write("3\n", support.at("runtime-interface"))
+  try configure(["--renderer", "kosmickrisp", "--retina", "auto"])
+  try require(try inspect()["renderer"] as? String == "kosmickrisp", "KosmicKrisp CLI readback")
+  try configure(["--renderer", "vulkan", "--moltenvk", "stable"])
+  try require(try inspect()["renderer"] as? String == "vulkan", "MoltenVK rollback")
   print(
     "PASS: CLI preservation, atomic configuration, legacy wrapper rejection and backend availability"
   )
