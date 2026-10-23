@@ -42,6 +42,11 @@ static LRESULT CALLBACK window_proc(HWND window, UINT message, WPARAM wp, LPARAM
     if (message == WM_ENDSESSION) { if (wp) mark("ended"); return 0; }
     if (message == WM_CLOSE)
     {
+        if (game && GetFileAttributesA("reject-game") != INVALID_FILE_ATTRIBUTES)
+        {
+            mark("rejected");
+            return 0;
+        }
         mark("close");
         if (!game && !helper) mark("ended");
         DestroyWindow(window);

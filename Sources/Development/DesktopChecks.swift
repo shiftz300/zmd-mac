@@ -111,7 +111,7 @@ func testWineSession(_ runtime: URL) throws {
     launcherSources + ["Tests/Fixtures/SessionWorker.swift"], build.at("Endfield"),
     defines: ["LIFECYCLE_TEST", "WINE_SESSION_TEST"])
   try compile(["Tests/check-wine-session.swift"], build.at("check"))
-  for selected in ["game", "launcher", "launcher-retry"] {
+  for selected in ["game", "game-retry", "launcher", "launcher-retry"] {
     let stage = try temp(build, selected + "-")
     defer { try? fm.removeItem(at: stage) }
     let app = stage.at("SessionTest.app")

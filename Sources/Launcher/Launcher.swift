@@ -74,6 +74,8 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
     private var launcher: Process?
     private var log: FileHandle?
     private var quitting = false
+    // nil means an explicit whole-session quit/restart; Dock requests target one process.
+    private var quitTarget: NSRunningApplication?
     private var finished = false
     private var quitTimer: Timer?
     private var quitDeadline = Date.distantPast
@@ -124,6 +126,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
     private func startSession(attach: Bool = false) {
         finished = false
         quitting = false
+        quitTarget = nil
         restartPending = false
         cacheClearPending = false
         launcherSeen = false
@@ -243,14 +246,15 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
     }
 
     @objc private func sessionQuitRequested(_ notification: Notification) {
-        guard let pid = notification.userInfo?["pid"] as? NSNumber,
-              sessionApplications().contains(where: {
+        guard !quitting, !finished,
+              let pid = notification.userInfo?["pid"] as? NSNumber,
+              let source = sessionApplications().first(where: {
                   $0.app.processIdentifier == pid.int32Value && $0.sessionID == sessionID
-              }) else { return }
+              }), source.isGame || source.isLauncher || source.isBootstrap else { return }
         record("Dock quit received: pid=\(pid)")
         restartPending = false
         cacheClearPending = false
-        beginQuit()
+        beginQuit(target: source.app)
     }
 
     private func launcherFinished(status: Int32) {
@@ -299,11 +303,12 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         return .terminateCancel
     }
 
-    private func beginQuit() {
+    private func beginQuit(target: NSRunningApplication? = nil) {
         guard !quitting && !finished else { return }
         quitting = true
+        quitTarget = target
         refreshLauncherStatus()
-        record("Session quit started")
+        record(target.map { "Application quit started: pid=\($0.processIdentifier)" } ?? "Session quit started")
         requested.removeAll()
         quitDeadline = Date().addingTimeInterval(15)
         let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
@@ -316,6 +321,15 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
 
     private func advanceQuit() {
         guard quitting && !finished else { return }
+        if let target = quitTarget, target.isTerminated {
+            quitTimer?.invalidate()
+            quitting = false
+            quitTarget = nil
+            requested.removeAll()
+            record("Application quit completed: pid=\(target.processIdentifier)")
+            refreshLauncherStatus()
+            return
+        }
         // End the game before its official launcher. Refresh the list to include
         // a process started while the initial launch was still in flight.
         let apps = sessionApplications().filter { $0.sessionID == nil || $0.sessionID == sessionID }
@@ -325,7 +339,12 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
         // Qt/Chromium owns its helper processes. Sending them independent quit
         // requests during launcher shutdown causes crash recovery/respawning
         // and can strand the launcher after its main window has disappeared.
-        let targets = !games.isEmpty ? games : (!launchers.isEmpty ? launchers : bootstraps)
+        let targets: [WineApplication]
+        if let target = quitTarget {
+            targets = apps.filter { $0.app == target }
+        } else {
+            targets = !games.isEmpty ? games : (!launchers.isEmpty ? launchers : bootstraps)
+        }
         for candidate in targets {
             let app = candidate.app
             if requested.contains(where: { $0 == app }) { continue }
@@ -353,6 +372,7 @@ final class EndfieldApplication: NSObject, NSApplicationDelegate {
     private func cancelQuit(_ message: String) {
         quitTimer?.invalidate()
         quitting = false
+        quitTarget = nil
         restartPending = false
         if cacheClearPending { settings?.showCacheResult("退出未完成，已取消缓存清理。", failed: true) }
         cacheClearPending = false

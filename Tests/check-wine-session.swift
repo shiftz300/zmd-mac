@@ -49,19 +49,52 @@ guard let game = apps.first(where: { $0.localizedName == "终末地" }),
 let scenario = CommandLine.arguments.dropFirst(2).first ?? "game"
 let selected = scenario.hasPrefix("launcher") ? launcher : game
 if scenario == "launcher-retry" { try Data().write(to: markers.appendingPathComponent("reject-qt")) }
+if scenario == "game-retry" { try Data().write(to: markers.appendingPathComponent("reject-game")) }
 _ = selected.terminate()
 if scenario == "launcher-retry" {
     guard wait(10, { exists("launcher-qt-rejected") }) else {
         print("FAIL: did not exercise unavailable Qt action"); exit(1)
     }
     _ = wait(16, { false }) // Cross the coordinator's quiet cancellation deadline.
-    guard !launcher.isTerminated, !wrapper.isTerminated,
+    guard !launcher.isTerminated, !game.isTerminated, !wrapper.isTerminated,
           !exists("launcher-query"), !exists("launcher-ended"), !exists("helper-query") else {
         print("FAIL: unavailable Qt action must preserve the launcher"); exit(1)
     }
     try FileManager.default.removeItem(at: markers.appendingPathComponent("reject-qt"))
     _ = selected.terminate()
 }
+if scenario == "game-retry" {
+    guard wait(10, { exists("game-rejected") }) else {
+        print("FAIL: did not exercise game cancellation"); exit(1)
+    }
+    _ = wait(16, { false })
+    guard !game.isTerminated, !launcher.isTerminated, !wrapper.isTerminated,
+          !exists("launcher-tray-exit"), !exists("helper-query") else {
+        print("FAIL: cancelled game quit affected the launcher"); exit(1)
+    }
+    try FileManager.default.removeItem(at: markers.appendingPathComponent("reject-game"))
+    _ = game.terminate()
+}
+guard wait(15, { selected.isTerminated }) else {
+    print("FAIL: selected application did not exit"); exit(1)
+}
+// Let multiple coordinator ticks pass: an old session-wide implementation would
+// now close the other application too. Keep its lifecycle independent.
+_ = wait(2, { false })
+let other = scenario.hasPrefix("launcher") ? game : launcher
+guard !other.isTerminated, !wrapper.isTerminated else {
+    print("FAIL: Dock quit closed the other application or coordinator"); exit(1)
+}
+if scenario.hasPrefix("launcher") {
+    guard exists("helper-ended"), !exists("game-close"), !exists("game-query") else {
+        print("FAIL: launcher quit affected game or did not drain its helper"); exit(1)
+    }
+} else {
+    guard !exists("launcher-tray-exit"), !exists("launcher-close"), !exists("helper-ended") else {
+        print("FAIL: game quit affected launcher or helper"); exit(1)
+    }
+}
+_ = other.terminate()
 guard wait(20, { wrapper.isTerminated && game.isTerminated && launcher.isTerminated }) else {
     print("FAIL: session still running"); exit(1)
 }
@@ -72,4 +105,4 @@ guard exists("game-close"), !exists("game-query"), exists("launcher-tray-exit"),
 guard exists("helper-ended"), !exists("helper-query"), !exists("helper-close") else {
     print("FAIL: coordinator interrupted a launcher-owned helper"); exit(1)
 }
-print("PASS: \(scenario) Quit -> game close -> launcher tray Exit -> helper drains; no session-end fallback")
+print("PASS: \(scenario) Dock Quit only closes selected app; other survives, helper ownership and normal exit preserved")
