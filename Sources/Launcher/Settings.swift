@@ -107,7 +107,8 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         populate(renderer, [("Vulkan · KosmicKrisp", "kosmickrisp"),
                             ("Vulkan · MoltenVK", "vulkan"),
                             ("DirectX 11 · DXMT", "dxmt"),
-                            ("DirectX 11 · DXMT + MetalFX", "dxmt-metalfx")])
+                            ("DirectX 11 · DXMT + MetalFX", "dxmt-metalfx")]
+                            .filter { RendererSupport.available($0.1) })
         populate(windowMode, [("窗口化启动", "windowed"), ("无边框全屏启动", "fullscreen"), ("使用游戏设置", "game")])
         populate(retina, [("自动（指定分辨率时开启）", "auto"), ("开启", "on"), ("关闭", "off")])
         retina.setAccessibilityLabel("Retina 输出")

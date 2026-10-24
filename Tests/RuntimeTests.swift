@@ -18,6 +18,41 @@ import Foundation
       throw ZMDError("Expected failure")
     }
     var runtime = WineRuntime(support: root, inherited: [:])
+    runtime.appleSilicon = true
+    try put("runtime/renderers/moltenvk/libMoltenVK.dylib", "fixture")
+    for major in [14, 15, 26, 27] {
+      runtime.systemMajor = major
+      let expected = major >= 26 ? "kosmickrisp" : "vulkan"
+      try check(try runtime.selectedRenderer() == expected, "OS-specific default renderer")
+    }
+    for (major, saved) in [(14, "dxmt"), (14, "dxmt-metalfx"), (14, "kosmickrisp"), (15, "kosmickrisp")] {
+      runtime.systemMajor = major
+      try put("renderer.conf", saved)
+      try check(try runtime.selectedRenderer() == "vulkan", "Unsupported stored renderer fallback")
+      try check(try runtime.gameArguments().contains("-force-vulkan"), "Fallback game arguments")
+      let fallback = try runtime.environment()
+      try check(fallback["CX_LIBVULKAN"] == at("runtime/renderers/moltenvk/libMoltenVK.dylib").path
+                && fallback["VK_INSTANCE_LAYERS"] == nil, "Fallback renderer environment")
+      if major == 14 {
+        try check(fallback["WINEDLLPATH_PREPEND"] == nil && fallback["WINEDLLPATH_DXMT"] == nil,
+                  "macOS 14 must not load DXMT")
+      }
+      try expectFailure { try RendererSupport.require(saved, on: major) }
+      runtime.inherited["ZMD_RENDERER"] = saved
+      try expectFailure { _ = try runtime.environment() }
+      runtime.inherited = [:]
+    }
+    runtime.systemMajor = 26
+    runtime.appleSilicon = false
+    try put("renderer.conf", "kosmickrisp")
+    try check(RendererSupport.defaultRenderer(on: 26, apple: false) == "vulkan", "Intel default")
+    try check(try runtime.selectedRenderer() == "vulkan", "Intel saved KosmicKrisp fallback")
+    try check(try runtime.environment()["ROSETTA_ADVERTISE_AVX"] == nil, "Intel must not set Rosetta flags")
+    try expectFailure { try RendererSupport.require("kosmickrisp", on: 26, apple: false) }
+    runtime.appleSilicon = RendererSupport.appleSilicon
+    runtime.systemMajor = RendererSupport.systemMajor
+    try put("renderer.conf", "dxmt")
+    print("PASS: macOS 14/15/26/27 defaults, renderer fallback and explicit selection guards")
     try put("msync.conf", "off")
     try put("metal-hud.conf", "on")
     var env = try runtime.environment()

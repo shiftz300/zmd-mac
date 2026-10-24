@@ -26,7 +26,7 @@ func help() {
 
     install 未指定 --exe 时从官方 HTTPS 接口下载启动器。
     安装器内置 Wine 和图形后端，不需要 Python、Homebrew 或 Xcode。
-    需要 Apple Silicon、macOS 27 和 Rosetta 2。不会覆盖现有应用。
+    需要 macOS 14 或更新版本；Apple Silicon 需要 Rosetta 2，Intel 不需要。不会覆盖现有应用。
     游戏资源和登录由官方启动器完成，不自动安装系统组件。
     """)
 }
@@ -73,14 +73,13 @@ func options(_ arguments: ArraySlice<String>, allowed: Set<String>) throws -> [S
 }
 
 func doctor() throws {
-    #if !arch(arm64)
-    throw ZMDError("本安装包面向 Apple Silicon Mac。")
-    #endif
     let os = ProcessInfo.processInfo.operatingSystemVersion
-    try check(os.majorVersion >= 27, "当前发布包的编译依赖要求 macOS 27 或更新版本。")
-    do { try run("/usr/bin/arch", ["-x86_64", "/usr/bin/true"], capture: true) }
-    catch { throw ZMDError("需要 Rosetta 2。请先运行 softwareupdate --install-rosetta，并按系统提示操作。") }
-    print("系统检查通过：Apple Silicon / macOS \(os.majorVersion).\(os.minorVersion) / Rosetta 2")
+    try check(os.majorVersion >= 14, "需要 macOS 14 或更新版本。")
+    if RendererSupport.appleSilicon {
+        do { try run("/usr/bin/arch", ["-x86_64", "/usr/bin/true"], capture: true) }
+        catch { throw ZMDError("需要 Rosetta 2。请先运行 softwareupdate --install-rosetta，并按系统提示操作。") }
+    }
+    print("系统检查通过：\(RendererSupport.appleSilicon ? "Apple Silicon / Rosetta 2" : "Intel") / macOS \(os.majorVersion).\(os.minorVersion)")
 }
 
 func inspect(_ app: URL) throws {
@@ -89,7 +88,7 @@ func inspect(_ app: URL) throws {
     report["region"] = (try? String(contentsOf: support.appendingPathComponent("region.conf"), encoding: .utf8)
         .trimmingCharacters(in: .whitespacesAndNewlines)) ?? "cn"
     for (key, file, fallback) in [
-        ("renderer", "renderer.conf", "dxmt"), ("window", "window-mode.conf", "game"),
+        ("renderer", "renderer.conf", RendererSupport.defaultRenderer()), ("window", "window-mode.conf", "game"),
         ("resolution", "resolution.conf", "game"),
         ("retina", "retina.conf", "auto"),
         ("moltenvk_channel", "moltenvk.conf", "stable"), ("vulkan_queue", "vulkan-queue.conf", "default"),
@@ -145,7 +144,8 @@ func install(_ args: [String: String]) throws {
     let region = try GameRegion.parse(args["--region"] ?? "cn")
     let officialURL = region.installerURL
     try validateConfiguration(args)
-    let selectedRenderer = args["--renderer"] ?? "kosmickrisp"
+    let selectedRenderer = args["--renderer"] ?? RendererSupport.defaultRenderer()
+    try RendererSupport.require(selectedRenderer)
     let output = optionPath(args["--output"] ?? "~/Applications/\(region.appName).app")
     if args["--output"] == nil {
         let legacy = optionPath("~/Applications/\(region.legacyAppName).app")

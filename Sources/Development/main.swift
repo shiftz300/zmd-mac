@@ -15,6 +15,7 @@ func pathOption(_ name: String, _ fallback: URL? = nil) throws -> URL {
   ).standardizedFileURL
 }
 do {
+  try require(["arm64", "x86_64"].contains(targetArchitecture), "ZMD_TARGET_ARCH must be arm64 or x86_64")
   let values: [String: Set<String>] = [
     "bootstrap": [], "fetch": [], "wine": [], "runtime": [], "build": [], "test": [],
     "test-lifecycle": [], "test-cache-codec": [], "help": [], "--help": [],
@@ -61,12 +62,12 @@ do {
   case "package":
     try packageDistribution(
       runtime: pathOption("--runtime", work.at("runtime")),
-      sevenzip: pathOption("--sevenzip", work.at("tools/native/opt/sevenzip")),
+      sevenzip: pathOption("--sevenzip", work.at("tools/sevenzip-" + targetArchitecture)),
       output: pathOption("--output", project.at("release/zmd-mac")))
   case "pkg":
     try packagePKG(
       distribution: pathOption("--distribution", project.at("release/zmd-mac")),
-      output: pathOption("--output", project.at("release/zmd-mac-macos-arm64.pkg")))
+      output: pathOption("--output", project.at("release/zmd-mac-macos-\(targetArchitecture).pkg")))
   case "sources":
     try packageSources(
       pathOption(
@@ -95,15 +96,14 @@ do {
     if let existing = env["ZMD_SEVENZIP_SOURCE"] {
       sevenzip = URL(fileURLWithPath: existing)
     } else {
-      try bootstrap(sevenzipOnly: true)
-      sevenzip = work.at("tools/native/opt/sevenzip")
+      sevenzip = try buildSevenZip()
     }
     let output = URL(
       fileURLWithPath: env["ZMD_RELEASE_OUTPUT"] ?? project.at("release/zmd-mac").path)
     try packageDistribution(runtime: runtime, sevenzip: sevenzip, output: output)
     try packagePKG(
       distribution: output,
-      output: output.deletingLastPathComponent().at(output.lastPathComponent + "-macos-arm64.pkg"))
+      output: output.deletingLastPathComponent().at(output.lastPathComponent + "-macos-\(targetArchitecture).pkg"))
   case "test": try testQuick()
   case "test-cache-codec": try testCacheCodec(large: arguments.contains("--large"))
   case "test-kosmickrisp-cache":

@@ -136,12 +136,14 @@ func testRelease() throws {
   defer { try? fm.removeItem(at: directory) }
   for name in releaseAssets { try write("fixture", directory.at(name)) }
   let source = directory.at("zmd-mac")
-  let archive = directory.at("zmd-mac-macos-arm64.zip")
-  try savePlist(
-    ["CFBundleShortVersionString": "0.5.0"],
-    source.at("payload/AppTemplate.app/Contents/Info.plist"))
-  try fm.removeItem(at: archive)
-  try command(["ditto", "-c", "-k", "--keepParent", source.path, archive.path])
+  for architecture in ["arm64", "x86_64"] {
+    let archive = directory.at("zmd-mac-macos-\(architecture).zip")
+    try savePlist(
+      ["CFBundleShortVersionString": "0.5.0", "ZMDArchitecture": architecture],
+      source.at("payload/AppTemplate.app/Contents/Info.plist"))
+    try fm.removeItem(at: archive)
+    try command(["ditto", "-c", "-k", "--keepParent", source.path, archive.path])
+  }
   for name in releaseAssets { try checksumFile(directory.at(name)) }
   try require(
     try !verifyRelease("v0.5.0", directory) && verifyRelease("v0.5.0-rc.1", directory),
@@ -206,6 +208,21 @@ func testRelease() throws {
   try expectFailure { _ = try verifyRelease("v0.5.0", directory) }
   print("PASS: release checksums, versions, draft resume and failure boundaries")
 }
+func testDeployment() throws {
+  let root = try temp()
+  defer { try? fm.removeItem(at: root) }
+  let source = root.at("probe.c")
+  try write("int main(void) { return 0; }\n", source)
+  let binary = root.at("probe")
+  for minimum in ["14.0", "27.0"] {
+    try command(["xcrun", "clang", "-arch", targetArchitecture,
+                 "-mmacosx-version-min=" + minimum, source.path, "-o", binary.path])
+    if minimum == "14.0" { try verifyDeployment(root, maximum: 14) }
+    else { try expectFailure { try verifyDeployment(root, maximum: 14) } }
+  }
+  print("PASS: macOS deployment audit rejects newer common binaries")
+}
+
 func testQuick() throws {
   let build = work.at("build/tests")
   for file in files(project.at("Resources")) where ["sh", "command"].contains(file.pathExtension) {
@@ -226,6 +243,7 @@ func testQuick() throws {
   try compile(launcherSources, build.at("Endfield"))
   try testPatches()
   try testRelease()
+  try testDeployment()
   print("PASS: all quick checks")
 }
 func testPKG(_ package: URL, staticOnly: Bool) throws {
@@ -248,6 +266,13 @@ func testPKG(_ package: URL, staticOnly: Bool) throws {
     ], "Wrong region choices")
   let meta = try plist(payload.at("AppTemplate.app/Contents/Info.plist"))
   let v = meta["CFBundleShortVersionString"] as! String
+  try require(meta["LSMinimumSystemVersion"] as? String == "14.0", "Wrong application minimum OS")
+  let architecture = meta["ZMDArchitecture"] as? String ?? ""
+  try require(["arm64", "x86_64"].contains(architecture), "Missing package architecture")
+  try require(try nodes("/installer-gui-script/options[@hostArchitectures='\(architecture)']", distribution).count == 1,
+              "Wrong installer architecture")
+  try require(try nodes("/installer-gui-script/volume-check/allowed-os-versions/os-version[@min='14.0']", distribution).count == 1,
+              "Wrong installer minimum OS")
   try require(meta["LSUIElement"] as? Bool == true, "Template visible")
   try require(
     try children(payload).filter { $0.pathExtension == "app" }.count == 1,

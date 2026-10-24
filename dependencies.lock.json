@@ -123,15 +123,6 @@
     "url": "https://ghcr.io/v2/homebrew/core/ca-certificates/blobs/sha256:4c86a121f3800c41e3aa00fce008df3de4fba25bcc98da7afedbb624ea15f32f",
     "sha256": "4c86a121f3800c41e3aa00fce008df3de4fba25bcc98da7afedbb624ea15f32f"
   },
-  "native/sevenzip": {
-    "name": "sevenzip",
-    "version": "26.04",
-    "tag": "arm64_golden_gate",
-    "dependencies": [],
-    "cellar": ":any",
-    "url": "https://ghcr.io/v2/homebrew/core/sevenzip/blobs/sha256:3151d8a3228dfb7d4a4e66675ea66333294582711be7bf6cdaa3ee07532e45a4",
-    "sha256": "3151d8a3228dfb7d4a4e66675ea66333294582711be7bf6cdaa3ee07532e45a4"
-  },
   "native/pkgconf": {
     "name": "pkgconf",
     "version": "3.0.10",

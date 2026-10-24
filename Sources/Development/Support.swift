@@ -6,7 +6,8 @@ let project = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
   .deletingLastPathComponent().deletingLastPathComponent()
 let env = ProcessInfo.processInfo.environment
 let work = URL(fileURLWithPath: env["ZMD_WORK_DIR"] ?? project.path).standardizedFileURL
-let version = "0.8.0"
+let version = "0.9.0"
+let targetArchitecture = env["ZMD_TARGET_ARCH"] ?? "arm64"
 struct Failure: LocalizedError {
   let message: String
   init(_ message: String) { self.message = message }
@@ -172,6 +173,31 @@ func dependencies(_ file: URL) throws -> [String] {
     }
 }
 func sign(_ file: URL) throws { try command(["codesign", "--force", "--sign", "-", file.path]) }
+/// Reject newer deployment targets in common code; newer renderers are loaded only when available.
+func verifyDeployment(_ root: URL, maximum: Int, bundledRenderers: Bool = false) throws {
+  var count = 0
+  for file in files(root) where regular(file) && !file.link && macho(file) {
+    let path = relative(file, root)
+    var allowed = maximum
+    if bundledRenderers {
+      if path.hasPrefix("renderers/kosmickrisp/") || path.contains("/runtime/renderers/kosmickrisp/") { allowed = 26 }
+      else if path.hasPrefix("renderers/dxmt/") || path.hasPrefix("renderers/dxmt-metalfx/")
+                || path.contains("/runtime/renderers/dxmt/") || path.contains("/runtime/renderers/dxmt-metalfx/") { allowed = 15 }
+    }
+    let load = try command(["otool", "-l", file.path], capture: true).output
+    let versions = try matches(#"(?:minos\s+|LC_VERSION_MIN_MACOSX\s+cmdsize\s+\d+\s+version\s+)(\d+(?:\.\d+)+)"#, load)
+    try require(!versions.isEmpty, "Missing macOS deployment target: \(path)")
+    for match in versions {
+      let value = String(match.split(whereSeparator: { $0.isWhitespace }).last!)
+      try require(value.compare("\(allowed).0", options: .numeric) != .orderedDescending,
+                  "\(path) requires macOS \(value), expected <= \(allowed).0; rebuild the component")
+    }
+    count += 1
+  }
+  try require(count > 0, "No Mach-O files found for deployment check: \(root.path)")
+  print("PASS: deployment targets for \(count) Mach-O files")
+}
+
 func compile(_ sources: [String], _ output: URL, defines: [String] = []) throws {
   try mkdir(output.deletingLastPathComponent())
   try mkdir(work.at("build/swift-module-cache"))
@@ -179,7 +205,7 @@ func compile(_ sources: [String], _ output: URL, defines: [String] = []) throws 
     sources.contains { (try? project.at($0).text.contains("@main")) == true }
     ? ["-parse-as-library"] : []
   try command(
-    ["xcrun", "swiftc", "-O", "-module-cache-path", work.at("build/swift-module-cache").path] + mode
+    ["xcrun", "swiftc", "-target", "\(targetArchitecture)-apple-macosx14.0", "-O", "-module-cache-path", work.at("build/swift-module-cache").path] + mode
       + defines.flatMap { ["-D", $0] } + sources.map { project.at($0).path } + ["-o", output.path])
 }
 let runtimeSources = ["Sources/Runtime/Application.swift", "Sources/Runtime/WineRuntime.swift"]

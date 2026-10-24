@@ -7,7 +7,7 @@
 | 本地桌面集成 | 另加 `wine-session-dock.patch`，为当前包装会话提供中文进程名和 Dock 退出转发 |
 | CPU | x86_64 Wine 经 Rosetta 2，支持 i386 / x86_64 Windows 程序 |
 | 同步 | 默认 `WINEMSYNC=1`，`ROSETTA_ADVERTISE_AVX=1` |
-| 默认游戏路径 | 游戏 Vulkan → Vulkan Loader → KosmicKrisp → Metal 4；`--renderer kosmickrisp` |
+| 默认游戏路径 | macOS 26+：Vulkan → KosmicKrisp → Metal 4；macOS 14/15：Vulkan → MoltenVK → Metal |
 | 备用 Vulkan 路径 | 游戏 Vulkan → 修补版 MoltenVK 1.4.2 → Metal；`--renderer vulkan` |
 | 备用路径 | 游戏 Direct3D 11 → DXMT 0.80 → Metal |
 | MetalFX 试用路径 | `dxmt-metalfx`：DXMT 0.80 + 上游 #235 NGX 修复 + 本地 NVAPI 识别补丁，`DXMT_ENABLE_NVEXT=1`；游戏内选 DLSS |
@@ -43,7 +43,7 @@ KosmicKrisp 使用 Sikarugir 20261017 的 x86_64 构建（Mesa `b23137f730fa`，
 二进制、构建配方及 Mesa 提交见 `kosmickrisp.lock.json`；源码归档与许可证一同保留。
 官方 SDK 的 arm64 KosmicKrisp 不能直接加载进当前 x86_64 Wine。
 
-新安装的国服和 Global 默认使用 KosmicKrisp；升级原生入口保留已保存的后端选择。
+每种架构的包按系统与硬件选择：Apple Silicon + macOS 26+ 默认 KosmicKrisp，其余默认 MoltenVK；DXMT 与 DXMT + MetalFX 从 macOS 15 开放。Intel 隐藏 KosmicKrisp；DXMT 上游仅实验性支持部分 Intel/AMD GPU，不保证任意 Intel Mac 可用。运行设置隐藏不可用后端，CLI 显式选择不支持的后端会报错。已有应用迁到旧系统时，不支持的已保存后端在运行时回退 MoltenVK，不自动改写配置文件；保存运行设置才写回当前选择。macOS 14–26 与 Intel 真机尚未验证。
 KosmicKrisp 使用锁定的 Mesa 开发构建，出现兼容问题可在「运行设置 → 图形后端」切回 MoltenVK。
 保存后选择重启启动器，再从官方启动器启动游戏；仅退出游戏不会更新启动器继承的加载环境。
 

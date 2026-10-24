@@ -14,7 +14,7 @@ obtained during installation, not included in the distribution.
 | NVIDIA NVAPI headers | `d08488fcc82eef313b0464db37d2955709691e94`; used to build DXMT's own NVAPI implementation with a local logical GPU query patch | MIT; see `licenses/NVAPI-headers.txt` |
 | MoltenVK | 1.4.2, FineWine 1.2.4 patched distribution | Apache-2.0 and incorporated dependency notices |
 | KosmicKrisp (experimental) | Sikarugir 20261017 x86_64; Mesa `b23137f730fa90577bcfc7aa12c2a1fc1e49f1c7` | MIT core and individual component licenses; see `licenses/KosmicKrisp/` |
-| 7-Zip | 26.04 Homebrew bottle, `DISABLE_RAR_COMPRESS=1` | LGPL-2.1-or-later / BSD; see included license |
+| 7-Zip | 26.04 standalone 7zz, built from source with `DISABLE_RAR_COMPRESS=1`, macOS 14 target | LGPL-2.1-or-later / BSD; see included license |
 | GnuTLS, libtasn1, libidn2, libunistring, libiconv, gettext runtime, GMP, Nettle | Versions and hashes in `macports.lock.json` | Applicable LGPL / GPL alternatives; see component sources |
 | Brotli, libffi, p11-kit | Versions and hashes in `macports.lock.json` | Permissive licenses |
 | FreeType | 2.14.3 | FreeType License or GPL-2.0; acknowledge the FreeType Project |
@@ -38,7 +38,7 @@ debugging modifications to those libraries.
 - MoltenVK source and patch commits: see bundled `runtime/renderers/moltenvk/SOURCE.txt` and `provenance.json`.
 - KosmicKrisp: pinned binary and build/Mesa commits in `kosmickrisp.lock.json`; sources in `licenses/sources.json`. The Sikarugir build recipe uses the shadexternals Mesa fork. We relocate/sign the binary and reuse our pinned Vulkan loader; runtime hashes are in `renderers/kosmickrisp/provenance.json`. No upstream SDK installer is distributed or required.
 - MacPorts package URLs, versions, SHA-256 values: `macports.lock.json`.
-- Build tool and 7-Zip bottle URLs, versions, SHA-256 values: `dependencies.lock.json`.
+- Build tool bottle URLs, versions, SHA-256 values: `dependencies.lock.json`. 7-Zip source URL and SHA-256: `licenses/sources.json`; build recipe: `Sources/Development/Build.swift`.
 
 The package retains the Wine license, MoltenVK notices and component
 license texts under `licenses/`. The build retains upstream source inputs and

@@ -1,5 +1,40 @@
 import Foundation
 import CryptoKit
+import Darwin
+
+// Runtime requirements of the bundled backends (independent of the build host).
+enum RendererSupport {
+    static let systemMajor = ProcessInfo.processInfo.operatingSystemVersion.majorVersion
+    static let appleSilicon: Bool = {
+        #if arch(arm64)
+        return true
+        #else
+        var value: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        return sysctlbyname("sysctl.proc_translated", &value, &size, nil, 0) == 0 && value == 1
+        #endif
+    }()
+    static func minimum(_ renderer: String) -> Int {
+        switch renderer {
+        case "kosmickrisp": return 26
+        case "dxmt", "dxmt-metalfx": return 15
+        default: return 14
+        }
+    }
+    static func available(_ renderer: String, on major: Int = systemMajor, apple: Bool = appleSilicon) -> Bool {
+        major >= minimum(renderer) && (renderer != "kosmickrisp" || apple)
+    }
+    static func defaultRenderer(on major: Int = systemMajor, apple: Bool = appleSilicon) -> String {
+        available("kosmickrisp", on: major, apple: apple) ? "kosmickrisp" : "vulkan"
+    }
+    static func effective(_ stored: String, on major: Int = systemMajor, apple: Bool = appleSilicon) -> String {
+        available(stored, on: major, apple: apple) ? stored : "vulkan"
+    }
+    static func require(_ renderer: String, on major: Int = systemMajor, apple: Bool = appleSilicon) throws {
+        try check(major >= minimum(renderer), "\(renderer) 需要 macOS \(minimum(renderer)) 或更新版本。")
+        try check(renderer != "kosmickrisp" || apple, "KosmicKrisp 需要 Apple Silicon。")
+    }
+}
 
 // MARK: - Region and application identity
 
@@ -194,6 +229,7 @@ func supportDirectory(_ app: URL) throws -> URL {
 func configure(_ app: URL, _ args: [String: String]) throws {
     let manager = FileManager.default
     try validateConfiguration(args)
+    if let renderer = args["--renderer"] { try RendererSupport.require(renderer) }
     let support = try supportDirectory(app)
     let runtimeInterface = try? String(contentsOf: support.appendingPathComponent("runtime-interface"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
     let native = ["1", "2", "3"].contains(runtimeInterface ?? "")
@@ -276,8 +312,7 @@ func configure(_ app: URL, _ args: [String: String]) throws {
 }
 
 func checkKosmicKrisp(support: URL) throws {
-    try check(ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26,
-              "KosmicKrisp 需要 macOS 26 或更新版本。")
+    try RendererSupport.require("kosmickrisp")
     for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json",
                  "cache/libzmd_cache.dylib", "cache/cache_layer.json", "cache/provenance.json"] {
         try check(FileManager.default.fileExists(atPath: support.appendingPathComponent("runtime/renderers/kosmickrisp/" + file).path),
@@ -301,7 +336,9 @@ func configurationValues(_ app: URL) throws -> [String: String] {
     let support = try supportDirectory(app)
     return try Dictionary(uniqueKeysWithValues: configurationFields.map { key, file, fallback in
         let url = support.appendingPathComponent(file)
-        if !FileManager.default.fileExists(atPath: url.path) { return (key, fallback) }
-        return (key, try String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines))
+        let value = FileManager.default.fileExists(atPath: url.path)
+            ? try String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines)
+            : (key == "--renderer" ? RendererSupport.defaultRenderer() : fallback)
+        return (key, key == "--renderer" ? RendererSupport.effective(value) : value)
     })
 }

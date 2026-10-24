@@ -5,6 +5,8 @@ import Foundation
 struct WineRuntime {
   let support: URL
   var inherited = ProcessInfo.processInfo.environment
+  var systemMajor = RendererSupport.systemMajor
+  var appleSilicon = RendererSupport.appleSilicon
   var prefix: URL {
     URL(fileURLWithPath: inherited["ZMD_PREFIX"] ?? support.appendingPathComponent("prefix").path)
   }
@@ -14,6 +16,15 @@ struct WineRuntime {
     guard FileManager.default.fileExists(atPath: file.path) else { return fallback }
     return try String(contentsOf: file, encoding: .utf8).trimmingCharacters(
       in: .whitespacesAndNewlines)
+  }
+  func selectedRenderer() throws -> String {
+    if let explicit = inherited["ZMD_RENDERER"], !explicit.isEmpty {
+      try RendererSupport.require(explicit, on: systemMajor, apple: appleSilicon)
+      return explicit
+    }
+    return RendererSupport.effective(
+      try setting("renderer", RendererSupport.defaultRenderer(on: systemMajor, apple: appleSilicon)),
+      on: systemMajor, apple: appleSilicon)
   }
   func environment() throws -> [String: String] {
     var env = inherited
@@ -46,7 +57,7 @@ struct WineRuntime {
     let sync = try env["ZMD_MSYNC"].flatMap { $0.isEmpty ? nil : $0 } ?? setting("msync", "on")
     try check(["on", "off", "1", "0"].contains(sync), "Unknown MSync selection")
     env["WINEMSYNC"] = ["on", "1"].contains(sync) ? "1" : "0"
-    env["ROSETTA_ADVERTISE_AVX"] = "1"
+    env["ROSETTA_ADVERTISE_AVX"] = appleSilicon ? "1" : nil
     env["WINEDLLPATH"] = runtime.appendingPathComponent("wine/lib/wine").path
     env["WINEDLLPATH_DXMT"] = runtime.appendingPathComponent("renderers/dxmt").path
     env["DXMT_ALLOW_CROSS_PROCESS_SWAPCHAIN"] = "1"
@@ -58,8 +69,7 @@ struct WineRuntime {
       "VK_LAYER_PATH", "VK_ADD_LAYER_PATH", "VK_INSTANCE_LAYERS",
     ] { env[name] = nil }
     var overrides = env["WINEDLLOVERRIDES"] ?? "winemenubuilder.exe=d;mscoree,mshtml="
-    let selected =
-      try env["ZMD_RENDERER"].flatMap { $0.isEmpty ? nil : $0 } ?? setting("renderer", "dxmt")
+    let selected = try selectedRenderer()
     switch selected {
     case "dxmt": break
     case "dxmt-metalfx":
@@ -95,6 +105,11 @@ struct WineRuntime {
     default: throw ZMDError("Unknown renderer: \(selected)")
     }
     env["WINEDLLPATH_PREPEND"] = env["WINEDLLPATH_DXMT"]
+    if systemMajor < 15 {
+      // The bundled DXMT uses macOS 15 APIs. Use Wine's built-in D3D for launcher UI.
+      env["WINEDLLPATH_DXMT"] = nil
+      env["WINEDLLPATH_PREPEND"] = nil
+    }
     env["WINEDLLOVERRIDES"] = overrides
     env["DYLD_FALLBACK_LIBRARY_PATH"] =
       "\(runtime.path)/wine/lib:\(runtime.path)/wine/lib/wine/x86_64-unix:/usr/lib"
@@ -102,7 +117,7 @@ struct WineRuntime {
     return env
   }
   func gameArguments() throws -> String {
-    let renderer = try setting("renderer", "dxmt")
+    let renderer = try selectedRenderer()
     let window = try setting("window-mode", "game")
     let resolution = try setting("resolution", "game")
     try validateConfiguration([
@@ -143,7 +158,7 @@ struct WineRuntime {
   func session(attach: Bool) throws -> Int32 {
     if attach { return try execute(["-w"], server: true) }
     let flags = try gameArguments()
-    let mode = try setting("renderer", "dxmt")
+    let mode = try selectedRenderer()
     var selected = self
     selected.inherited["ZMD_RENDERER"] = mode
     let prepared = try selected.environment()

@@ -1,6 +1,7 @@
 import Foundation
 
 func bootstrap(nativeOnly: Bool = false, sevenzipOnly: Bool = false) throws {
+  if sevenzipOnly { _ = try buildSevenZip(); return }
   let locks = try json(project.at("dependencies.lock.json"))
   let base = work.at("tools/native")
   let lib = base.at("lib")
@@ -13,7 +14,7 @@ func bootstrap(nativeOnly: Bool = false, sevenzipOnly: Bool = false) throws {
     }
     for dep in entry["dependencies"] as! [String] { try visit(dep) }
   }
-  for name in sevenzipOnly ? ["sevenzip"] : ["bison", "mingw-w64", "sevenzip", "pkgconf"] {
+  for name in ["bison", "mingw-w64", "pkgconf"] {
     try visit(name)
   }
   for name in selected.sorted() {
@@ -110,7 +111,7 @@ func bootstrap(nativeOnly: Bool = false, sevenzipOnly: Bool = false) throws {
       try write(text, file)
     }
   }
-  if nativeOnly || sevenzipOnly { return }
+  if nativeOnly { return }
   let sdk = work.at("tools/x86_64")
   let ports = try json(project.at("macports.lock.json"))
   var done = Set<String>()
@@ -150,6 +151,30 @@ func bootstrap(nativeOnly: Bool = false, sevenzipOnly: Bool = false) throws {
       try write(text.replacingOccurrences(of: "/opt/local", with: sdk.path), file)
     }
   }
+}
+
+/// Build the shipped extractor from the already pinned source, not a host-OS bottle.
+func buildSevenZip() throws -> URL {
+  let input = try json(project.at("licenses/sources.json"))["7zip"] as! [String: String]
+  let archive = work.at("downloads/license-sources/" + input["file"]!)
+  try download(input["url"]!, archive, input["sha256"]!)
+  let source = work.at("build/sevenzip-" + String(input["sha256"]!.prefix(12)))
+  if !source.exists {
+    try mkdir(source)
+    try command(["tar", "-xf", archive.path, "-C", source.path])
+  }
+  let bundle = source.at("CPP/7zip/Bundles/Alone2")
+  let platform = targetArchitecture == "arm64" ? "arm64" : "x64"
+  var environment = env
+  environment["MACOSX_DEPLOYMENT_TARGET"] = "14.0"
+  try command(["make", "-f", "../../cmpl_mac_\(platform).mak", "-j" + (env["JOBS"] ?? "8"),
+               "MY_ARCH=-arch \(targetArchitecture) -mmacosx-version-min=14.0", "DISABLE_RAR_COMPRESS=1"],
+              cwd: bundle, environment: environment)
+  let output = work.at("tools/sevenzip-" + targetArchitecture)
+  try copy(bundle.at("b/m_\(platform)/7zz"), output.at("bin/7zz"))
+  try sign(output.at("bin/7zz"))
+  try verifyDeployment(output, maximum: 14)
+  return output
 }
 let sourceInputs = [
   (
@@ -256,13 +281,19 @@ func buildWine() throws {
   e["PKG_CONFIG_LIBDIR"] = sdk.at("lib/pkgconfig").path + ":" + sdk.at("share/pkgconfig").path
   e["PKG_CONFIG_PATH"] = ""
   e["MACOSX_DEPLOYMENT_TARGET"] = "14.0"
-  e["CC"] = "clang -arch x86_64"
-  e["CXX"] = "clang++ -arch x86_64"
-  e["OBJC"] = "clang -arch x86_64"
+  e["CC"] = "clang -arch x86_64 -mmacosx-version-min=14.0"
+  e["CXX"] = "clang++ -arch x86_64 -mmacosx-version-min=14.0"
+  e["OBJC"] = "clang -arch x86_64 -mmacosx-version-min=14.0"
   e["CPPFLAGS"] = "-I" + sdk.at("include").path
   e["LDFLAGS"] = "-L\(sdk.path)/lib -Wl,-rpath,\(sdk.path)/lib"
   e["CROSSCFLAGS"] = "-O2"
   try mkdir(build)
+  // Configure records the target in CC, including subsequent manual make invocations.
+  // Rebuild objects from older build directories whose target was only an environment variable.
+  if build.at("Makefile").exists,
+     try !build.at("Makefile").text.contains("CC = clang -arch x86_64 -mmacosx-version-min=14.0") {
+    try command(["make", "distclean"], cwd: build, environment: e)
+  }
   if !build.at("Makefile").exists {
     var args = [
       source.at("configure").path, "--prefix=" + work.at("runtime/wine").path,

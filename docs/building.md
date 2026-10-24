@@ -9,7 +9,8 @@ swift run zmd-dev test
 ZMD_WORK_DIR="$PWD/.work" swift run zmd-dev build
 ```
 
-`build` 下载锁定依赖，编译 Wine 和 MetalFX，生成 CLI ZIP 与 PKG。输出到 `release/`；已有产物拒绝覆盖。
+`build` 下载锁定依赖，编译 Wine、7-Zip 和 MetalFX，生成 CLI ZIP 与 PKG。输出到 `release/`；已有产物拒绝覆盖。
+通用 Swift 入口、Wine 与独立 7zz 显式以 macOS 14 为目标；构建主机仍使用 macOS 27 工具链。DXMT 保留 macOS 15 门槛，KosmicKrisp 保留 macOS 26 门槛。打包时逐个检查 Mach-O 最低版本，禁止混入较新系统的通用二进制；这不替代旧系统真机验证。
 `ZMD_WORK_DIR` 默认是项目目录，CI 使用 `.work`。`ZMD_RELEASE_OUTPUT` 可指定另一输出目录。
 版本号集中在 `Sources/Development/Support.swift`。
 
@@ -17,11 +18,20 @@ ZMD_WORK_DIR="$PWD/.work" swift run zmd-dev build
 
 ```sh
 ZMD_RUNTIME_SOURCE="$PWD/runtime" \
-ZMD_SEVENZIP_SOURCE="$PWD/tools/native/opt/sevenzip" \
+ZMD_SEVENZIP_SOURCE="$PWD/tools/sevenzip-arm64" \
 swift run zmd-dev build
 ```
 
-这只重建安装器与包装层，不代表全新环境中的 Wine 完整构建已经验证。
+先运行 `swift run zmd-dev bootstrap --sevenzip-only` 可构建独立 7zz。复用运行库仍须通过最低系统检查，不能直接使用 0.8.0 的 macOS 27 构建。这只重建安装器与包装层，不代表全新环境中的 Wine 完整构建已经验证。
+
+`ZMD_TARGET_ARCH=arm64|x86_64` 控制 CLI、原生入口、7zz 与 PKG 的架构（默认 arm64）；Wine 本身均为 x86_64。Intel 包可在 Apple Silicon 上交叉编译：
+
+```sh
+ZMD_TARGET_ARCH=x86_64 ZMD_RUNTIME_SOURCE="$PWD/runtime" \
+ZMD_RELEASE_OUTPUT="$PWD/build/intel/zmd-mac" swift run zmd-dev build
+```
+
+产物名分别为 `zmd-mac-macos-arm64` 和 `zmd-mac-macos-x86_64`，各含 ZIP／PKG。CI 构建两种架构，发布时核对两份 ZIP 的版本及架构；源码归档共用一份。Rosetta 上的 x86_64 检查不代表 Intel GPU 或旧系统兼容性验证。
 
 ## 代码结构
 
@@ -64,7 +74,7 @@ swift run zmd-dev update-app --app "$HOME/Applications/鹰角启动器.app"
 
 ## 图形后端
 
-默认构建包含稳定版 MoltenVK、KosmicKrisp 实验后端和独立 DXMT + MetalFX；新安装默认使用 KosmicKrisp。
+默认构建包含稳定版 MoltenVK、KosmicKrisp 和独立 DXMT + MetalFX；新安装按系统选择默认后端（14/15 为 MoltenVK，26+ 为 KosmicKrisp）。
 MetalFX 基于锁定的 DXMT 0.80，回移 NGX #235 并补充 NVAPI 逻辑 GPU 查询。
 源码、补丁和编译器输入均有锁定哈希，不链接 NVIDIA 驱动库，不打包游戏签名 DLL。
 
@@ -108,7 +118,7 @@ swift run zmd-dev test-pkg --package release/zmd-mac-macos-arm64.pkg
 PKG 由系统 `pkgbuild` / `productbuild` 生成，可选择国服、Global 或两服。
 共用只读资源安装到 `/Library/Application Support/zmd-mac`。
 Shell 钩子读取当前控制台登录用户，通过 `launchctl asuser` / `sudo -u` 清理环境后调用 Swift CLI。
-不会以 root 启动 Wine，不另做安装器应用。没有登录用户、非启动磁盘或缺少 Rosetta 时停止。
+不会以 root 启动 Wine，不另做安装器应用。没有登录用户、非启动磁盘时停止；Apple Silicon 缺少 Rosetta 时停止，Intel 不要求 Rosetta。
 组件安装超时为 1800 秒，已有用户应用由 CLI 的拒绝覆盖逻辑保护。
 
 `test-pkg` 只检查内容及安装选项，不执行系统安装。

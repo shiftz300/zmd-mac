@@ -32,12 +32,13 @@ func appMetadata(template: Bool) -> [String: Any] {
     "CFBundleDevelopmentRegion": "zh_CN", "CFBundleDisplayName": "鹰角启动器", "CFBundleName": "鹰角启动器",
     "CFBundleIdentifier": "local.zmdmac.endfield.template", "CFBundleExecutable": "Endfield",
     "CFBundlePackageType": "APPL", "CFBundleInfoDictionaryVersion": "6.0",
-    "CFBundleShortVersionString": version, "CFBundleVersion": "9", "LSMinimumSystemVersion": "27.0",
+    "CFBundleShortVersionString": version, "CFBundleVersion": "9", "LSMinimumSystemVersion": "14.0",
+    "ZMDArchitecture": targetArchitecture,
     "LSMultipleInstancesProhibited": true, "NSHighResolutionCapable": true, "LSUIElement": template,
   ]
 }
 func packageDistribution(runtime: URL, sevenzip: URL, output: URL) throws {
-  let archive = output.deletingLastPathComponent().at(output.lastPathComponent + "-macos-arm64.zip")
+  let archive = output.deletingLastPathComponent().at(output.lastPathComponent + "-macos-\(targetArchitecture).zip")
   for path in [output, archive, archive.appendingPathExtension("sha256")] {
     try require(!path.exists && !path.link, "Refusing to overwrite \(path.path)")
   }
@@ -61,7 +62,7 @@ func packageDistribution(runtime: URL, sevenzip: URL, output: URL) throws {
   try sign(contents.at("MacOS/Endfield"))
   try savePlist(appMetadata(template: true), contents.at("Info.plist"))
   try clone(runtime, payload.at("runtime"))
-  for name in ["bin/7zz", "lib/7z.so"] {
+  for name in ["bin/7zz"] {
     let target = payload.at("sevenzip/" + name)
     try copy(sevenzip.at(name), target)
     let lines = try command(["otool", "-l", target.path], capture: true).output.components(
@@ -71,10 +72,13 @@ func packageDistribution(runtime: URL, sevenzip: URL, output: URL) throws {
       let path = String(line.dropFirst(5)).components(separatedBy: " (offset")[0]
       try command(["install_name_tool", "-delete_rpath", path, target.path])
     }
-    if name.hasSuffix(".so") {
-      try command(["install_name_tool", "-id", "@loader_path/7z.so", target.path])
-    }
     try sign(target)
+  }
+  try verifyDeployment(distribution, maximum: 14, bundledRenderers: true)
+  for file in [distribution.at("zmd"), contents.at("MacOS/Endfield"), payload.at("sevenzip/bin/7zz")] {
+    try require(try command(["lipo", "-archs", file.path], capture: true).output
+                  .trimmingCharacters(in: .whitespacesAndNewlines) == targetArchitecture,
+                "Wrong native architecture: \(file.path)")
   }
   for name in [
     "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md", "docs", "licenses", "dependencies.lock.json",
@@ -114,6 +118,8 @@ func packagePKG(distribution: URL, output: URL) throws {
     try plist(distribution.at("payload/AppTemplate.app/Contents/Info.plist"))[
       "CFBundleShortVersionString"] as! String
   try require(packagedVersion == version, "Distribution version differs from build tool")
+  try require(try plist(distribution.at("payload/AppTemplate.app/Contents/Info.plist"))["ZMDArchitecture"] as? String == targetArchitecture,
+              "Distribution architecture differs from ZMD_TARGET_ARCH")
   let stage = try temp(output.deletingLastPathComponent(), "zmd-pkg-")
   defer { try? fm.removeItem(at: stage) }
   let root = stage.at("root")
@@ -163,7 +169,7 @@ func packagePKG(distribution: URL, output: URL) throws {
   }
   let resources = stage.at("resources")
   try write(
-    "<!doctype html><meta charset=\"utf-8\"><h2>终末地 · macOS</h2><p>在「安装类型 → 自定」选择国服或 Global，也可同时安装。</p><p>为当前登录用户安装官方启动器并创建桌面入口；已有同名应用不会覆盖。</p><p>需要 Apple Silicon、macOS 27、Rosetta 2 和网络。Global 完整游玩尚未验证。</p>",
+    "<!doctype html><meta charset=\"utf-8\"><h2>终末地 · macOS</h2><p>在「安装类型 → 自定」选择国服或 Global，也可同时安装。</p><p>为当前登录用户安装官方启动器并创建桌面入口；已有同名应用不会覆盖。</p><p>\(targetArchitecture == "arm64" ? "Apple Silicon，需要 Rosetta 2" : "Intel x86_64，无需 Rosetta")；macOS 14+，需要网络。按系统与硬件自动选择后端；旧系统、Intel 和 Global 完整游玩尚未验证。</p>",
     resources.at("welcome.html"))
   try write(
     "<!doctype html><meta charset=\"utf-8\"><h2>安装完成</h2><p>从桌面或个人「应用程序」打开「鹰角启动器」／「GRYPHLINK」，下载并开始游戏。运行设置可从左上角应用菜单打开。</p>",
@@ -172,9 +178,9 @@ func packagePKG(distribution: URL, output: URL) throws {
     <?xml version="1.0" encoding="utf-8"?>
     <installer-gui-script minSpecVersion="2"><title>终末地</title>
     <welcome file="welcome.html" mime-type="text/html"/><conclusion file="conclusion.html" mime-type="text/html"/>
-    <options customize="always" require-scripts="true" hostArchitectures="arm64"/>
+    <options customize="always" require-scripts="true" hostArchitectures="\(targetArchitecture)"/>
     <domains enable_anywhere="false" enable_currentUserHome="false" enable_localSystem="true"/>
-    <volume-check><allowed-os-versions><os-version min="27.0"/></allowed-os-versions></volume-check>
+    <volume-check><allowed-os-versions><os-version min="14.0"/></allowed-os-versions></volume-check>
     <choices-outline><line choice="runtime"/><line choice="cn"/><line choice="global"/></choices-outline>
     """
   for region in ["runtime", "cn", "global"] {
@@ -202,6 +208,7 @@ func updateApp(_ app: URL) throws {
   let support = contents.at("SharedSupport")
   try require(entry.exists, "An existing application is required")
   try validateRuntime(support.at("runtime"))
+  try verifyDeployment(support.at("runtime"), maximum: 14, bundledRenderers: true)
   let build = work.at("build/native-launcher")
   try mkdir(build)
   let fresh = build.at("Endfield")
@@ -222,6 +229,8 @@ func updateApp(_ app: URL) throws {
   try copy(project.at("Resources/prefix-settings.reg"), support.at("prefix-settings.reg"))
   var metadata = try plist(contents.at("Info.plist"))
   metadata["CFBundleShortVersionString"] = version
+  metadata["LSMinimumSystemVersion"] = "14.0"
+  metadata["ZMDArchitecture"] = targetArchitecture
   metadata["CFBundleVersion"] = "9"
   metadata["CFBundleName"] = app.deletingPathExtension().lastPathComponent
   metadata["CFBundleDisplayName"] = metadata["CFBundleName"]
@@ -278,7 +287,8 @@ func packageSources(_ runtime: URL, output: URL) throws {
 // MARK: - Release validation and publication
 
 let releaseAssets = [
-  "zmd-mac-macos-arm64.pkg", "zmd-mac-macos-arm64.zip", "third-party-sources.tar.gz",
+  "zmd-mac-macos-arm64.pkg", "zmd-mac-macos-arm64.zip",
+  "zmd-mac-macos-x86_64.pkg", "zmd-mac-macos-x86_64.zip", "third-party-sources.tar.gz",
 ]
 func verifyRelease(_ tag: String, _ directory: URL) throws -> Bool {
   try require(
@@ -297,17 +307,20 @@ func verifyRelease(_ tag: String, _ directory: URL) throws -> Bool {
           + name,
       "Checksum mismatch: \(name)")
   }
-  let raw = try command(
-    [
-      "unzip", "-p", directory.at("zmd-mac-macos-arm64.zip").path,
-      "zmd-mac/payload/AppTemplate.app/Contents/Info.plist",
-    ], capture: true
-  ).output
-  let meta =
-    try PropertyListSerialization.propertyList(from: Data(raw.utf8), format: nil) as! [String: Any]
-  try require(
-    meta["CFBundleShortVersionString"] as? String
-      == String(tag.dropFirst()).components(separatedBy: "-")[0], "Tag differs from app version")
+  for architecture in ["arm64", "x86_64"] {
+    let raw = try command(
+      [
+        "unzip", "-p", directory.at("zmd-mac-macos-\(architecture).zip").path,
+        "zmd-mac/payload/AppTemplate.app/Contents/Info.plist",
+      ], capture: true
+    ).output
+    let meta =
+      try PropertyListSerialization.propertyList(from: Data(raw.utf8), format: nil) as! [String: Any]
+    try require(
+      meta["CFBundleShortVersionString"] as? String
+        == String(tag.dropFirst()).components(separatedBy: "-")[0], "Tag differs from app version")
+    try require(meta["ZMDArchitecture"] as? String == architecture, "Release archive architecture mismatch")
+  }
   return tag.contains("-")
 }
 typealias ReleaseRunner = ([String], Bool) throws -> CommandResult
@@ -336,7 +349,7 @@ func publishRelease(
     var args = [
       "create", tag, "--repo", repository, "--verify-tag", "--target", commit, "--title",
       "zmd-mac " + tag, "--draft", "--generate-notes", "--notes",
-      "Apple Silicon / macOS 27 / Rosetta 2。PKG 可选择国服或 Global；ZIP 用于命令行安装。附第三方源码；尚未公证。",
+      "macOS 14+；Apple Silicon 选择 arm64 包（需要 Rosetta 2），Intel 选择 x86_64 包（无需 Rosetta）。按系统与硬件自动选择后端；旧系统和 Intel 尚未实测。PKG 可选择国服或 Global；ZIP 用于命令行安装。附第三方源码；尚未公证。",
     ]
     if prerelease { args.append("--prerelease") }
     _ = try runner(prefix + args, false)

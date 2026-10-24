@@ -1,5 +1,14 @@
 # 本地验证记录
 
+## v0.9.0 · macOS 14 目标与 Intel 包
+
+- 通用 Swift 入口、Wine、7zz 显式指定 macOS 14 目标；Wine 完整重新配置、编译、安装并重建运行库，`ntdll.so` 的实际最低版本已由 27 降至 14。7zz 从已锁定的 26.04 源码构建，无额外安装依赖。
+- 新增 arm64／x86_64 两套 ZIP 和 PKG；入口、CLI、7zz 架构各自一致。两套发行目录的 64 个 Mach-O 文件均通过最低版本检查：通用部分至多 14，DXMT 至多 15，KosmicKrisp 至多 26。两种架构的 7zz 分别通过国服／Global 官方安装 EXE 的完整内容校验。
+- 两套 PKG 的地区选项、钩子、超时、版本与载荷哈希检查通过，CLI doctor／verify 通过；检查没有执行安装。
+- 系统默认值、旧配置回退和显式选择拒绝覆盖 macOS 14／15／26／27 与模拟 Intel；arm64 快速检查通过，x86_64 全部快速检查通过（在 Rosetta 下运行）。最低版本检查包含拒绝较新通用二进制的负例，发布校验要求两套架构资产齐全。
+- 高版本 Apple Silicon 仍使用原来的 KosmicKrisp、缓存压缩与同步设置；没有性能对比实测。Intel 默认 MoltenVK，不要求 Rosetta、不设置 Rosetta AVX 标志；不开放 KosmicKrisp。
+- 本次只验证本机 macOS 27 的构建、静态边界及 Rosetta 路径，不能据此宣称 macOS 14–26 或 Intel GPU／游戏兼容性已验证。未改动已安装应用；上述本地包验证在发布前完成，0.9.0 正式包由标签 CI 重新构建。
+
 ## v0.8.0
 
 - 修复 KosmicKrisp 大于 4 GiB 的管线缓存保存失败，使用带校验的 zstd 压缩；真实游戏读取、保存和退出等待改善已确认。
