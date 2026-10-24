@@ -1,6 +1,8 @@
 import Foundation
 import CryptoKit
 
+// MARK: - Region and application identity
+
 enum GameRegion: String, CaseIterable {
     case cn, global
 
@@ -19,44 +21,12 @@ enum GameRegion: String, CaseIterable {
     }
 }
 
+// MARK: - Shared file and process utilities
+
 struct ZMDError: LocalizedError {
     let message: String
     init(_ message: String) { self.message = message }
     var errorDescription: String? { message }
-}
-
-/// Call only after the owning Wine session has fully exited.
-/// Clear the game's known Vulkan cache, never whole AppData or driver caches.
-func clearVulkanCache(_ app: URL) throws -> Int {
-    let manager = FileManager.default
-    let root = app.resolvingSymlinksInPath()
-    let prefix = root.appendingPathComponent("Contents/SharedSupport/prefix")
-    let users = prefix.appendingPathComponent("drive_c/users")
-    try check(users.resolvingSymlinksInPath().path.hasPrefix(prefix.path + "/"),
-              "缓存目录指向应用外部，未清理。")
-    guard manager.fileExists(atPath: users.path) else { return 0 }
-    let profiles = try manager.contentsOfDirectory(at: users, includingPropertiesForKeys: nil)
-    var caches: [URL] = []
-    for profile in profiles {
-        for vendor in ["Hypergryph", "Gryphline"] {
-            let cache = profile.appendingPathComponent("AppData/LocalLow/\(vendor)/Endfield/vulkan_pso_cache.bin")
-            // Ignore absent files, but reject links/directories instead of following them.
-            let attributes: [FileAttributeKey: Any]
-            do { attributes = try manager.attributesOfItem(atPath: cache.path) }
-            catch let error as NSError {
-                if error.domain == NSCocoaErrorDomain &&
-                   [NSFileNoSuchFileError, NSFileReadNoSuchFileError].contains(error.code) { continue }
-                throw error
-            }
-            try check(attributes[.type] as? FileAttributeType == .typeRegular &&
-                      cache.resolvingSymlinksInPath().path.hasPrefix(prefix.path + "/"),
-                      "缓存路径异常，未清理。")
-            caches.append(cache)
-        }
-    }
-    // Validate every candidate before removing any file.
-    for cache in caches { try manager.removeItem(at: cache) }
-    return caches.count
 }
 
 func check(_ condition: Bool, _ message: String) throws {
@@ -79,6 +49,46 @@ func safeRelativePath(_ path: String) -> Bool {
         !normalized.contains(":") && !normalized.contains("\0") &&
         !normalized.split(separator: "/", omittingEmptySubsequences: false).contains("..")
 }
+
+@discardableResult
+func run(_ executable: String, _ arguments: [String], environment: [String: String]? = nil,
+         log: FileHandle? = nil, capture: Bool = false) throws -> String {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: executable)
+    process.arguments = arguments
+    if let environment = environment { process.environment = environment }
+    let pipe = capture ? Pipe() : nil
+    process.standardOutput = pipe?.fileHandleForWriting ?? log ?? FileHandle.standardOutput
+    process.standardError = log ?? FileHandle.standardError
+    try process.run()
+    // Process inherits a duplicate; keeping our writer open prevents EOF.
+    try pipe?.fileHandleForWriting.close()
+    let data = pipe?.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+    try check(process.terminationStatus == 0, "\(URL(fileURLWithPath: executable).lastPathComponent) 失败（\(process.terminationStatus)），请查看安装日志。")
+    return data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+}
+
+func optionPath(_ path: String) -> URL {
+    URL(fileURLWithPath: (path as NSString).expandingTildeInPath).standardizedFileURL
+}
+
+func writeText(_ text: String, _ url: URL) throws {
+    try text.write(to: url, atomically: true, encoding: .utf8)
+}
+
+func copyDirectory(_ source: URL, _ destination: URL, log: FileHandle?) throws {
+    // APFS clones avoid storing multiple full copies where supported.
+    do { try run("/bin/cp", ["-cR", source.path, destination.path], log: log) }
+    catch {
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
+        }
+        try FileManager.default.copyItem(at: source, to: destination)
+    }
+}
+
+// MARK: - Installer and payload validation
 
 func validateInstallerListing(_ listing: String) throws {
     var paths: [String] = []
@@ -145,43 +155,7 @@ func verifyPayload(_ input: URL) throws {
     }
 }
 
-@discardableResult
-func run(_ executable: String, _ arguments: [String], environment: [String: String]? = nil,
-         log: FileHandle? = nil, capture: Bool = false) throws -> String {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: executable)
-    process.arguments = arguments
-    if let environment = environment { process.environment = environment }
-    let pipe = capture ? Pipe() : nil
-    process.standardOutput = pipe?.fileHandleForWriting ?? log ?? FileHandle.standardOutput
-    process.standardError = log ?? FileHandle.standardError
-    try process.run()
-    // Process inherits a duplicate; keeping our writer open prevents EOF.
-    try pipe?.fileHandleForWriting.close()
-    let data = pipe?.fileHandleForReading.readDataToEndOfFile()
-    process.waitUntilExit()
-    try check(process.terminationStatus == 0, "\(URL(fileURLWithPath: executable).lastPathComponent) 失败（\(process.terminationStatus)），请查看安装日志。")
-    return data.flatMap { String(data: $0, encoding: .utf8) } ?? ""
-}
-
-func optionPath(_ path: String) -> URL {
-    URL(fileURLWithPath: (path as NSString).expandingTildeInPath).standardizedFileURL
-}
-
-func writeText(_ text: String, _ url: URL) throws {
-    try text.write(to: url, atomically: true, encoding: .utf8)
-}
-
-func copyDirectory(_ source: URL, _ destination: URL, log: FileHandle?) throws {
-    // APFS clones avoid storing multiple full copies where supported.
-    do { try run("/bin/cp", ["-cR", source.path, destination.path], log: log) }
-    catch {
-        if FileManager.default.fileExists(atPath: destination.path) {
-            try FileManager.default.removeItem(at: destination)
-        }
-        try FileManager.default.copyItem(at: source, to: destination)
-    }
-}
+// MARK: - Persistent runtime settings
 
 func validateConfiguration(_ args: [String: String]) throws {
     if let resolution = args["--resolution"], resolution != "game" {
@@ -304,9 +278,10 @@ func configure(_ app: URL, _ args: [String: String]) throws {
 func checkKosmicKrisp(support: URL) throws {
     try check(ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 26,
               "KosmicKrisp 需要 macOS 26 或更新版本。")
-    for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json"] {
+    for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json",
+                 "cache/libzmd_cache.dylib", "cache/cache_layer.json", "cache/provenance.json"] {
         try check(FileManager.default.fileExists(atPath: support.appendingPathComponent("runtime/renderers/kosmickrisp/" + file).path),
-                  "此应用未完整安装 KosmicKrisp 实验后端；请先安装组件。")
+                  "此应用未完整安装 KosmicKrisp 后端；请先更新应用组件。")
     }
 }
 

@@ -1,4 +1,5 @@
 import AppKit
+import IOKit.graphics
 
 enum LauncherStatus: Equatable {
     case starting, running, gameRunning, stopping, stopped, failed
@@ -28,6 +29,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
     private let moltenvk = NSPopUpButton()
     private let vulkanQueue = NSPopUpButton()
     private var moltenvkRows: [NSGridRow] = []
+    private var shaderCacheRow: NSGridRow?
     private let msync = NSButton(checkboxWithTitle: "启用 MSync", target: nil, action: nil)
     private let hud = NSButton(checkboxWithTitle: "显示 Metal 性能面板", target: nil, action: nil)
     private let startup = NSButton(checkboxWithTitle: "打开启动器时显示设置", target: nil, action: nil)
@@ -102,7 +104,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
 
     private func buildContents() {
         guard let content = window?.contentView else { return }
-        populate(renderer, [("Vulkan · KosmicKrisp（实验）", "kosmickrisp"),
+        populate(renderer, [("Vulkan · KosmicKrisp", "kosmickrisp"),
                             ("Vulkan · MoltenVK", "vulkan"),
                             ("DirectX 11 · DXMT", "dxmt"),
                             ("DirectX 11 · DXMT + MetalFX", "dxmt-metalfx")])
@@ -170,11 +172,13 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         tools.spacing = 8
         let debugTab = NSTabViewItem(identifier: "debug")
         debugTab.label = "调试"
-        debugTab.view = pane([
+        let debugGrid = NSGridView(views: [
             [label("DXMT 日志"), dxmtLog], [label("Wine 日志"), wineLog],
             [label("着色器缓存"), shaderCache], [label("校验"), metalValidation],
             [NSGridCell.emptyContentView, shaderValidation], [label("工具"), tools],
         ])
+        shaderCacheRow = debugGrid.row(at: 2)
+        debugTab.view = pane(debugGrid)
         tabs.addTabViewItem(runtimeTab)
         tabs.addTabViewItem(displayTab)
         tabs.addTabViewItem(debugTab)
@@ -272,7 +276,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
             resolution.stringValue = size == "game" ? "使用游戏设置" : size.replacingOccurrences(of: "x", with: " × ")
             select(moltenvk, value: loaded["--moltenvk"]!)
             select(vulkanQueue, value: loaded["--vulkan-queue"]!)
-            updateVulkanControls()
+            updateRendererControls()
             msync.state = loaded["--msync"] == "on" ? .on : .off
             hud.state = loaded["--hud"] == "on" ? .on : .off
             startup.state = loaded["--settings-window"] == "off" ? .off : .on
@@ -287,7 +291,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
     }
 
     @objc private func controlChanged() {
-        updateVulkanControls()
+        updateRendererControls()
         message.textColor = .secondaryLabelColor
         message.stringValue = "更改尚未保存。"
     }
@@ -305,11 +309,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
         } catch { showFailure(error) }
     }
 
-    private func updateVulkanControls() {
-        let enabled = renderer.selectedItem?.representedObject as? String == "vulkan"
+    private func updateRendererControls() {
+        let selected = renderer.selectedItem?.representedObject as? String
+        let enabled = selected == "vulkan"
         for row in moltenvkRows { row.isHidden = !enabled }
         moltenvk.isEnabled = enabled
         vulkanQueue.isEnabled = enabled
+        let usesDXMT = selected == "dxmt" || selected == "dxmt-metalfx"
+        shaderCacheRow?.isHidden = !usesDXMT
+        shaderCache.isEnabled = usesDXMT
     }
 
     @objc private func startupChanged() {
@@ -390,4 +398,44 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate, NSCo
 
     @objc private func closeWindow() { window?.performClose(nil) }
     func windowWillClose(_ notification: Notification) { didClose?() }
+}
+
+// MARK: - Native display pixels
+
+struct DisplayPixelMode {
+    let width: Int
+    let height: Int
+    let flags: UInt32
+}
+
+struct DisplayResolution: Hashable {
+    let width: Int
+    let height: Int
+
+    // Current-mode pixels can be a supersampled HiDPI buffer (e.g. 5120×2880
+    // on a 3840×2160 panel). Only use modes explicitly marked native by macOS.
+    static func native(modes: [DisplayPixelMode], portrait: Bool) -> Self? {
+        let sizes = Set(modes.compactMap { mode -> Self? in
+            guard mode.flags & UInt32(kDisplayModeNativeFlag) != 0,
+                  mode.width > 0, mode.height > 0 else { return nil }
+            let short = min(mode.width, mode.height)
+            let long = max(mode.width, mode.height)
+            // Mode dimensions can already be rotated; orient once to the screen.
+            return Self(width: portrait ? short : long, height: portrait ? long : short)
+        })
+        // Don't guess from the largest mode or silently fall back to points.
+        return sizes.count == 1 ? sizes.first : nil
+    }
+
+    static func read(_ screen: NSScreen) throws -> Self {
+        guard let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+              let modes = CGDisplayCopyAllDisplayModes(number.uint32Value,
+                  [kCGDisplayShowDuplicateLowResolutionModes: true] as CFDictionary) as? [CGDisplayMode],
+              let size = native(modes: modes.map {
+                  DisplayPixelMode(width: $0.pixelWidth, height: $0.pixelHeight, flags: $0.ioFlags)
+              }, portrait: screen.frame.height > screen.frame.width) else {
+            throw ZMDError("无法确认屏幕的原生像素分辨率，请手动选择。")
+        }
+        return size
+    }
 }

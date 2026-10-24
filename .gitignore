@@ -2,7 +2,7 @@ downloads/
 vendor/
 build/
 tools/
-runtime/
+/runtime/
 prefix/
 logs/
 dist/

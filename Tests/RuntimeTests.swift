@@ -39,6 +39,7 @@ import Foundation
       "VK_ICD_FILENAMES": "stale", "VK_DRIVER_FILES": "stale", "VK_ADD_DRIVER_FILES": "stale",
       "VK_LOADER_DRIVERS_SELECT": "stale", "VK_LOADER_DRIVERS_DISABLE": "stale",
       "VK_LOADER_SEARCH_ONLY_IN_BUNDLE": "TRUE",
+      "VK_LAYER_PATH": "stale", "VK_ADD_LAYER_PATH": "stale", "VK_INSTANCE_LAYERS": "stale",
     ]
     try put("renderer.conf", "vulkan")
     for channel in ["stable", "experimental"] {
@@ -56,7 +57,8 @@ import Foundation
     }
     try put("renderer.conf", "kosmickrisp")
     try expectFailure { _ = try runtime.environment() }
-    for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json"] {
+    for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json",
+                 "cache/libzmd_cache.dylib", "cache/cache_layer.json", "cache/provenance.json"] {
       try put("runtime/renderers/kosmickrisp/" + file, "fixture")
     }
     env = try runtime.environment()
@@ -65,6 +67,9 @@ import Foundation
       && env["CX_ACTIVE_GRAPHICS_BACKEND"] == "wined3d"
       && env["MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS"] == nil
       && env["DXMT_ENABLE_NVEXT"] == nil, "KosmicKrisp loader and driver isolation")
+    try check(env["VK_LAYER_PATH"] == at("runtime/renderers/kosmickrisp/cache").path
+      && env["VK_INSTANCE_LAYERS"] == "VK_LAYER_ZMD_pipeline_cache"
+      && env["VK_ADD_LAYER_PATH"] == nil, "KosmicKrisp cache layer isolation")
     try check(try runtime.gameArguments() == "-force-vulkan", "KosmicKrisp uses game Vulkan")
     for key in ["VK_ICD_FILENAMES", "VK_ADD_DRIVER_FILES", "VK_LOADER_DRIVERS_SELECT",
                 "VK_LOADER_DRIVERS_DISABLE", "VK_LOADER_SEARCH_ONLY_IN_BUNDLE"] {
@@ -72,7 +77,8 @@ import Foundation
     }
     try put("renderer.conf", "vulkan")
     env = try runtime.environment()
-    try check(env["VK_DRIVER_FILES"] == nil && env["CX_LIBVULKAN"]!.contains("libMoltenVK"),
+    try check(env["VK_DRIVER_FILES"] == nil && env["CX_LIBVULKAN"]!.contains("libMoltenVK")
+              && env["VK_LAYER_PATH"] == nil && env["VK_INSTANCE_LAYERS"] == nil,
               "Switch back to MoltenVK")
     try put("renderer.conf", "dxmt")
     env = try runtime.environment()

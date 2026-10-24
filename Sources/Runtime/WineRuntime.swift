@@ -55,6 +55,7 @@ struct WineRuntime {
       "CX_ACTIVE_GRAPHICS_BACKEND",
       "VK_DRIVER_FILES", "VK_ICD_FILENAMES", "VK_ADD_DRIVER_FILES",
       "VK_LOADER_DRIVERS_SELECT", "VK_LOADER_DRIVERS_DISABLE", "VK_LOADER_SEARCH_ONLY_IN_BUNDLE",
+      "VK_LAYER_PATH", "VK_ADD_LAYER_PATH", "VK_INSTANCE_LAYERS",
     ] { env[name] = nil }
     var overrides = env["WINEDLLOVERRIDES"] ?? "winemenubuilder.exe=d;mscoree,mshtml="
     let selected =
@@ -89,6 +90,8 @@ struct WineRuntime {
       env["CX_ACTIVE_GRAPHICS_BACKEND"] = "wined3d"
       // Select only our bundled ICD, never a system-installed Vulkan driver.
       env["VK_DRIVER_FILES"] = backend.appendingPathComponent("kosmickrisp_icd.json").path
+      env["VK_LAYER_PATH"] = backend.appendingPathComponent("cache").path
+      env["VK_INSTANCE_LAYERS"] = "VK_LAYER_ZMD_pipeline_cache"
     default: throw ZMDError("Unknown renderer: \(selected)")
     }
     env["WINEDLLPATH_PREPEND"] = env["WINEDLLPATH_DXMT"]
@@ -218,6 +221,8 @@ struct WineRuntime {
   }
 }
 
+// MARK: - Display preferences
+
 /// Read the last fully stopped Wine session's driver preference, not per-app keys.
 func savedRetinaMode(_ registry: String) -> Bool {
   var active = false
@@ -268,6 +273,8 @@ struct GameResolutionEdit {
 }
 
 /// Keep the signed NGX discovery entry in the prefix, never in the game directory.
+// MARK: - MetalFX file preparation and restoration
+
 func prepareNGX(prefix: URL, mode: String) throws {
   let fm = FileManager.default
   try check(["dxmt", "dxmt-metalfx", "vulkan", "kosmickrisp"].contains(mode), "Unknown renderer")
@@ -352,4 +359,40 @@ func prepareNGX(prefix: URL, mode: String) throws {
   }
   try writeText(digest + "\n", record("installed.sha256"))
   if exists(record("pending.sha256")) { try fm.removeItem(at: record("pending.sha256")) }
+}
+
+// MARK: - Session cache maintenance
+
+/// Call only after the owning Wine session has fully exited.
+/// Clear the game's known Vulkan cache, never whole AppData or driver caches.
+func clearVulkanCache(_ app: URL) throws -> Int {
+    let manager = FileManager.default
+    let root = app.resolvingSymlinksInPath()
+    let prefix = root.appendingPathComponent("Contents/SharedSupport/prefix")
+    let users = prefix.appendingPathComponent("drive_c/users")
+    try check(users.resolvingSymlinksInPath().path.hasPrefix(prefix.path + "/"),
+              "缓存目录指向应用外部，未清理。")
+    guard manager.fileExists(atPath: users.path) else { return 0 }
+    let profiles = try manager.contentsOfDirectory(at: users, includingPropertiesForKeys: nil)
+    var caches: [URL] = []
+    for profile in profiles {
+        for vendor in ["Hypergryph", "Gryphline"] {
+            let cache = profile.appendingPathComponent("AppData/LocalLow/\(vendor)/Endfield/vulkan_pso_cache.bin")
+            // Ignore absent files, but reject links/directories instead of following them.
+            let attributes: [FileAttributeKey: Any]
+            do { attributes = try manager.attributesOfItem(atPath: cache.path) }
+            catch let error as NSError {
+                if error.domain == NSCocoaErrorDomain &&
+                   [NSFileNoSuchFileError, NSFileReadNoSuchFileError].contains(error.code) { continue }
+                throw error
+            }
+            try check(attributes[.type] as? FileAttributeType == .typeRegular &&
+                      cache.resolvingSymlinksInPath().path.hasPrefix(prefix.path + "/"),
+                      "缓存路径异常，未清理。")
+            caches.append(cache)
+        }
+    }
+    // Validate every candidate before removing any file.
+    for cache in caches { try manager.removeItem(at: cache) }
+    return caches.count
 }

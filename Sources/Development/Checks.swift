@@ -97,7 +97,8 @@ func testCLI(_ executable: URL) throws {
     try configure(["--renderer", "kosmickrisp", "--hud", "off"], fails: true)
     try require(try support.at("metal-hud.conf").text == "on\n", "Unavailable renderer mutated HUD")
   }
-  for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json"] {
+  for file in ["libvulkan.1.dylib", "libvulkan_kosmickrisp.dylib", "kosmickrisp_icd.json", "provenance.json",
+               "cache/libzmd_cache.dylib", "cache/cache_layer.json", "cache/provenance.json"] {
     try write("{}", support.at("runtime/renderers/kosmickrisp/" + file))
   }
   try write("2\n", support.at("runtime-interface"))
@@ -210,18 +211,17 @@ func testQuick() throws {
   for file in files(project.at("Resources")) where ["sh", "command"].contains(file.pathExtension) {
     try command(["bash", "-n", file.path])
   }
-  try compile(["Sources/zmd/Core.swift", "Tests/main.swift"], build.at("core"))
+  try compile(runtimeSources + ["Tests/main.swift"], build.at("core"))
   try command([build.at("core").path])
-  try compile(coreSources + ["Sources/zmd/main.swift"], build.at("zmd"))
+  try compile(cliSources, build.at("zmd"))
   try command([build.at("zmd").path, "--help"])
   try testCLI(build.at("zmd"))
   try compile(["Tests/Fixtures/RuntimeProbe.swift"], build.at("probe"))
-  try compile(coreSources + ["Tests/RuntimeTests.swift"], build.at("runtime-tests"))
+  try compile(runtimeSources + ["Tests/RuntimeTests.swift"], build.at("runtime-tests"))
   try command([build.at("runtime-tests").path, build.at("probe").path])
-  try compile(["Sources/zmd/Core.swift", "Sources/Launcher/DisplayResolution.swift",
-               "Tests/DisplayResolutionTests.swift"], build.at("display-resolution-tests"))
+  try compile(settingsSources + ["Tests/DisplayResolutionTests.swift"], build.at("display-resolution-tests"))
   try command([build.at("display-resolution-tests").path])
-  try compile(coreSources + ["Tests/GameResolutionTests.swift"], build.at("game-resolution-tests"))
+  try compile(runtimeSources + ["Tests/GameResolutionTests.swift"], build.at("game-resolution-tests"))
   try command([build.at("game-resolution-tests").path])
   try compile(launcherSources, build.at("Endfield"))
   try testPatches()

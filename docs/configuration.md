@@ -44,11 +44,12 @@ KosmicKrisp 使用 Sikarugir 20261017 的 x86_64 构建（Mesa `b23137f730fa`，
 官方 SDK 的 arm64 KosmicKrisp 不能直接加载进当前 x86_64 Wine。
 
 新安装的国服和 Global 默认使用 KosmicKrisp；升级原生入口保留已保存的后端选择。
-KosmicKrisp 仍为实验构建，出现兼容问题可在「运行设置 → 图形后端」切回 MoltenVK。
+KosmicKrisp 使用锁定的 Mesa 开发构建，出现兼容问题可在「运行设置 → 图形后端」切回 MoltenVK。
 保存后选择重启启动器，再从官方启动器启动游戏；仅退出游戏不会更新启动器继承的加载环境。
 
 原生设置的「MoltenVK 版本」提供稳定版／实验版；「队列提交」提供默认（同步）／后台队列。
 两项仅在选择 MoltenVK 时显示，切换后端时保留其选择；切回时不残留 KosmicKrisp 的驱动选择变量。
+「DXMT 着色器缓存」仅在选择 DXMT 或 DXMT + MetalFX 时显示，隐藏时保留原来的勾选状态。
 也可使用 `zmd configure --app 应用.app --renderer vulkan --moltenvk experimental --vulkan-queue default`。
 实验版单独安装到 `runtime/renderers/moltenvk-experimental`，未安装时拒绝保存该选项。
 未设置时始终使用稳定版和同步提交；实验库缺失时会报错，不静默换库。

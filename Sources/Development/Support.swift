@@ -6,7 +6,7 @@ let project = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
   .deletingLastPathComponent().deletingLastPathComponent()
 let env = ProcessInfo.processInfo.environment
 let work = URL(fileURLWithPath: env["ZMD_WORK_DIR"] ?? project.path).standardizedFileURL
-let version = "0.7.2"
+let version = "0.8.0"
 struct Failure: LocalizedError {
   let message: String
   init(_ message: String) { self.message = message }
@@ -182,10 +182,10 @@ func compile(_ sources: [String], _ output: URL, defines: [String] = []) throws 
     ["xcrun", "swiftc", "-O", "-module-cache-path", work.at("build/swift-module-cache").path] + mode
       + defines.flatMap { ["-D", $0] } + sources.map { project.at($0).path } + ["-o", output.path])
 }
-let coreSources = ["Sources/zmd/Core.swift", "Sources/zmd/Runtime.swift"]
-let launcherSources =
-  coreSources + ["Sources/Launcher/Launcher.swift", "Sources/Launcher/Settings.swift",
-                 "Sources/Launcher/DisplayResolution.swift"]
+let runtimeSources = ["Sources/Runtime/Application.swift", "Sources/Runtime/WineRuntime.swift"]
+let cliSources = runtimeSources + ["Sources/CLI/main.swift"]
+let settingsSources = runtimeSources + ["Sources/Launcher/Settings.swift"]
+let launcherSources = settingsSources + ["Sources/Launcher/Launcher.swift"]
 func checksumFile(_ file: URL) throws {
   try write(
     try digest(file) + "  " + file.lastPathComponent + "\n", file.appendingPathExtension("sha256"))
@@ -203,4 +203,11 @@ func ensurePatch(_ patch: URL, _ source: URL, idempotent: Bool = true) throws {
   }
   try command(["git", "apply", "--check", patch.path], cwd: source, environment: environment)
   try command(["git", "apply", patch.path], cwd: source, environment: environment)
+}
+
+func matches(_ pattern: String, _ text: String) throws -> [String] {
+  let regex = try NSRegularExpression(pattern: pattern)
+  return regex.matches(in: text, range: NSRange(text.startIndex..., in: text)).map {
+    String(text[Range($0.range, in: text)!])
+  }
 }

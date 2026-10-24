@@ -25,14 +25,17 @@ swift run zmd-dev build
 
 ## 代码结构
 
-- `Sources/zmd/`：Swift CLI、配置校验、Wine 环境和 MetalFX 文件恢复。
-- `Sources/Launcher/`：原生 AppKit 入口、运行设置和会话退出。
-- `Sources/Development/`：依赖准备、构建、打包、发布与测试编排。
+- `Sources/CLI/`：命令行安装、检查与配置入口。
+- `Sources/Runtime/`：CLI 和原生应用共用的代码。`Application.swift` 管理应用配置、安装包校验和文件工具；`WineRuntime.swift` 管理 Wine 环境、显示参数、MetalFX 文件恢复及会话缓存清理。
+- `Sources/Launcher/`：`Launcher.swift` 管理原生入口和会话退出；`Settings.swift` 管理运行设置和屏幕像素读取。
+- `Sources/VulkanCache/`：原生 Vulkan 缓存层。`cache_layer.c` 处理 Vulkan 调用与快照，`cache_codec.h` 负责 zstd 编解码，独立验证大缓存和损坏数据。
+- `Sources/Development/`：依赖与 Wine 构建在 `Build.swift`，图形后端构建在 `Renderers.swift`，打包与发布统一在 `Packaging.swift`。快速检查、桌面会话及安装检查、图形及缓存检查分别在 `Checks.swift`、`DesktopChecks.swift`、`GraphicsChecks.swift`。
 - `Tests/`：Swift 回归用例及 Win32／图形测试程序。
 - `Resources/`：初始注册表、PKG Shell 钩子和 ZIP 双击入口。
 - `Patches/`：Wine、DXMT 补丁。
 
 `swift run zmd-dev --help` 查看全部命令。运行逻辑编译进原生可执行文件，应用内不再串联 Shell。
+源码编译列表统一在 `Development/Support.swift`：CLI 与 Launcher 共用 Runtime，Runtime 不依赖界面或开发工具；Development 编排构建，不编入用户应用。
 配置仍兼容旧包装层；不支持的新选项会在写入前拒绝。
 
 ## 桌面集成测试

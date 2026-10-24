@@ -17,7 +17,7 @@ func pathOption(_ name: String, _ fallback: URL? = nil) throws -> URL {
 do {
   let values: [String: Set<String>] = [
     "bootstrap": [], "fetch": [], "wine": [], "runtime": [], "build": [], "test": [],
-    "test-lifecycle": [], "help": [], "--help": [],
+    "test-lifecycle": [], "test-cache-codec": [], "help": [], "--help": [],
     "moltenvk": ["--runtime"], "kosmickrisp": ["--runtime"], "metalfx": ["--runtime"], "experimental": ["--runtime", "--jobs"],
     "package": ["--runtime", "--sevenzip", "--output"], "pkg": ["--distribution", "--output"],
     "sources": ["--runtime", "--output"], "release": ["--tag", "--directory"],
@@ -25,11 +25,13 @@ do {
     "test-pkg": ["--package"], "test-display": ["--runtime"], "test-vulkan": ["--runtime"], "test-kosmickrisp": ["--runtime"],
     "test-session": ["--runtime"], "test-resolution": ["--runtime"],
     "test-install": ["--distribution", "--cn-exe", "--global-exe"],
+    "test-kosmickrisp-cache": ["--runtime", "--app"],
   ]
   let selected = arguments.first ?? "help"
   guard let allowed = values[selected] else { throw Failure("Unknown command: " + selected) }
   let flags = [
     "bootstrap": "--sevenzip-only", "release": "--check-only", "test-pkg": "--static-only",
+    "test-cache-codec": "--large",
   ]
   var seen = Set<String>()
   var index = 1
@@ -103,17 +105,21 @@ do {
       distribution: output,
       output: output.deletingLastPathComponent().at(output.lastPathComponent + "-macos-arm64.pkg"))
   case "test": try testQuick()
+  case "test-cache-codec": try testCacheCodec(large: arguments.contains("--large"))
+  case "test-kosmickrisp-cache":
+    try testKosmicCache(runtime: pathOption("--runtime", work.at("runtime")),
+                       app: arguments.contains("--app") ? pathOption("--app") : nil)
   case "test-pkg":
     try testPKG(pathOption("--package"), staticOnly: arguments.contains("--static-only"))
   case "test-display", "test-vulkan", "test-kosmickrisp":
     try testGraphics(
-      vulkan: arguments[0] != "test-display", runtime: pathOption("--runtime", work.at("runtime")),
-      kosmickrisp: arguments[0] == "test-kosmickrisp")
+      selected == "test-display" ? .displays : selected == "test-kosmickrisp" ? .kosmicKrisp : .moltenVK,
+      runtime: pathOption("--runtime", work.at("runtime")))
   case "test-lifecycle": try testLifecycle()
   case "test-session": try testWineSession(pathOption("--runtime", work.at("runtime")))
   case "test-resolution":
     let test = work.at("build/tests/game-resolution-tests")
-    try compile(coreSources + ["Tests/GameResolutionTests.swift"], test)
+    try compile(runtimeSources + ["Tests/GameResolutionTests.swift"], test)
     try command([test.path, pathOption("--runtime", work.at("runtime")).path], timeout: 180)
   case "test-install":
     try testInstall(
@@ -123,11 +129,13 @@ do {
       """
       zmd-dev — Swift development tools (no Python; minimal PKG shell hooks)
       test | test-lifecycle | test-display | test-session | test-vulkan | test-resolution
+      test-cache-codec [--large]
       test-pkg --package FILE [--static-only]
       test-install --distribution DIR --cn-exe FILE --global-exe FILE
       build | bootstrap [--sevenzip-only] | fetch | wine | runtime
       moltenvk | kosmickrisp | metalfx | experimental [--runtime DIR] [--jobs N]
       test-kosmickrisp [--runtime DIR]
+      test-kosmickrisp-cache [--runtime DIR] [--app PATH]
       package [--runtime DIR] [--sevenzip DIR] [--output DIR]
       pkg [--distribution DIR] [--output FILE]
       sources [--runtime DIR] [--output FILE]

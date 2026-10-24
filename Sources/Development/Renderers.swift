@@ -1,5 +1,7 @@
 import Foundation
 
+// MARK: - KosmicKrisp and its application cache layer
+
 /// Import only the pinned x86_64 driver; reuse our Wine runtime's Vulkan loader.
 /// The LunarG SDK driver is arm64-only and cannot be loaded by this Wine process.
 func installKosmicKrisp(_ runtime: URL) throws {
@@ -18,6 +20,7 @@ func installKosmicKrisp(_ runtime: URL) throws {
       let installed = target.at("licenses/" + relative(file, project.at("licenses/KosmicKrisp")))
       try require(try digest(installed) == digest(file), "KosmicKrisp license mismatch; preserve and reinstall the component")
     }
+    try installCacheLayer(target)
     return
   }
   let archive = work.at("downloads/" + lock["file"]!)
@@ -58,7 +61,68 @@ func installKosmicKrisp(_ runtime: URL) throws {
     "verification": "Experimental; game compatibility and performance require validation",
   ], candidate.at("provenance.json"))
   try fm.moveItem(at: candidate, to: target)
+  try installCacheLayer(target)
 }
+
+/// Native loader layer; reuses the runtime's bundled zstd library.
+private func installCacheLayer(_ backend: URL) throws {
+  let source = project.at("Sources/VulkanCache")
+  let target = backend.at("cache")
+  var hashes = try Dictionary(uniqueKeysWithValues: ["cache_layer.c", "cache_codec.h"].map {
+    ($0, try digest(source.at($0)))
+  })
+  hashes["zstd.h"] = try digest(work.at("tools/x86_64/include/zstd.h"))
+  hashes["libzstd.1.5.7.dylib"] = try digest(work.at("tools/x86_64/lib/libzstd.1.5.7.dylib"))
+  if target.at("provenance.json").exists,
+     let record = try? json(target.at("provenance.json")),
+     record["source_sha256"] as? [String: String] == hashes {
+    let files = record["files"] as? [String: String] ?? [:]
+    try require(Set(files.keys) == Set(["libzmd_cache.dylib", "cache_layer.json"]), "Incomplete cache layer")
+    for (name, hash) in files { try require(try digest(target.at(name)) == hash, "Modified cache layer: \(name)") }
+    return
+  }
+  let stage = try temp(backend, ".cache-build-")
+  defer { try? fm.removeItem(at: stage) }
+  // The pinned Vulkan framework flattens video headers. Restore the standard
+  // include layout locally, without another SDK or dependency download.
+  let headers = work.at("tools/x86_64/Library/Frameworks/vulkan.framework/Versions/A/Headers")
+  let include = stage.at("include")
+  try mkdir(include.at("vk_video"))
+  for file in try children(headers) where file.pathExtension == "h" {
+    try copy(file, include.at(file.lastPathComponent))
+    if file.lastPathComponent.hasPrefix("vulkan_video_") {
+      try copy(file, include.at("vk_video/" + file.lastPathComponent))
+    }
+  }
+  let candidate = stage.at("cache")
+  try mkdir(candidate)
+  let library = candidate.at("libzmd_cache.dylib")
+  try command(["xcrun", "clang", "-arch", "x86_64", "-mmacosx-version-min=26.0", "-O2",
+               "-Wall", "-Wextra", "-Werror", "-Wno-deprecated-declarations", "-fvisibility=hidden",
+               "-dynamiclib", "-I" + include.path,
+               "-I" + work.at("tools/x86_64/include").path,
+               "-L" + work.at("tools/x86_64/lib").path, "-lzstd",
+               "-Wl,-rpath,@loader_path/../../../wine/lib",
+               "-Wl,-install_name,@loader_path/libzmd_cache.dylib", source.at("cache_layer.c").path,
+               "-o", library.path])
+  try sign(library)
+  try saveJSON(["file_format_version": "1.2.0", "layer": [
+    "name": "VK_LAYER_ZMD_pipeline_cache", "type": "GLOBAL", "library_path": "./libzmd_cache.dylib",
+    "api_version": "1.4.0", "implementation_version": "1",
+    "description": "ZMD application pipeline cache compression",
+  ]], candidate.at("cache_layer.json"))
+  try saveJSON(["format": 1, "source_sha256": hashes,
+    "files": ["libzmd_cache.dylib": try digest(library),
+              "cache_layer.json": try digest(candidate.at("cache_layer.json"))]], candidate.at("provenance.json"))
+  if target.exists { try fm.moveItem(at: target, to: stage.at("previous")) }
+  do { try fm.moveItem(at: candidate, to: target) }
+  catch {
+    if stage.at("previous").exists { try? fm.moveItem(at: stage.at("previous"), to: target) }
+    throw error
+  }
+}
+
+// MARK: - MoltenVK stable distribution
 
 func installMoltenVK(_ runtime: URL) throws {
   let url =
@@ -92,12 +156,8 @@ func installMoltenVK(_ runtime: URL) throws {
       "patches_commit": "ab8b9e909c5f5d87f166de0cf4ec00a1a8aa29da", "license": "Apache-2.0",
     ], target.at("provenance.json"))
 }
-func matches(_ pattern: String, _ text: String) throws -> [String] {
-  let regex = try NSRegularExpression(pattern: pattern)
-  return regex.matches(in: text, range: NSRange(text.startIndex..., in: text)).map {
-    String(text[Range($0.range, in: text)!])
-  }
-}
+// MARK: - DXMT MetalFX bridge
+
 func buildMetalFX(_ runtime: URL) throws {
   let base = runtime.at("renderers/dxmt")
   let original = base.at("x86_64-windows/nvngx.dll")
@@ -210,6 +270,8 @@ func buildMetalFX(_ runtime: URL) throws {
   try saveJSON(record, candidate.at("provenance.json"))
   try fm.moveItem(at: candidate, to: target)
 }
+// MARK: - MoltenVK experimental build
+
 func buildExperimental(_ runtime: URL, jobs: Int) throws {
   try require(jobs > 0, "Jobs must be positive")
   let lockfile = project.at("moltenvk-experimental.lock.json")
